@@ -12,9 +12,26 @@ SDL_Window   *screen;
 SDL_Renderer *renderer;
 
 typedef struct Vector {
-	int x;
-	int y;
+	float x, y;
 } vector;
+
+float
+norm(vector v)
+{
+	return (sqrtf (v.x * v.x + v.y * v.y));
+}
+
+vector
+normalize(vector v)
+{
+	float n;
+
+	n = norm(v);
+	v.x /= n;
+	v.y /= n;
+	return v;
+
+}
 
 int player_x = 0, player_y = 0;
 vector player_speed;
@@ -24,18 +41,14 @@ get_mouse(vector v)
 {
 	SDL_Event e;
 
-	while (SDL_PollEvent(&e) && (e.type == SDL_MOUSEMOTION)) {
-		int ny = e.motion.y - player_y;
-		printf("%d\n%d\n", e.motion.x, e.motion.y);
-		if (ny == 0) { 
-			v.y = 0;
-			v.x = 5 * floor((e.motion.x - player_x));
+	while (SDL_PollEvent(&e))
+		if (e.type == SDL_MOUSEMOTION) {
+			v.x = e.motion.x - player_x;
+			v.y = e.motion.y - player_y;
+			return normalize(v);
+		} else {
+			return v;
 		}
-		else { 
-			v.y = 5 * ny / abs(ny);
-			v.x = 5 * floor((e.motion.x - player_x) / (abs(ny)));
-		}
-	}
 	return v;
 }
 
@@ -85,9 +98,10 @@ int
 main()
 {
 	init();
+	int v = 5;
 	while (1) {
 		player_speed = get_mouse(player_speed);
-		update_player(player_x + player_speed.x, player_y + player_speed.y);
+		update_player(player_x + v * player_speed.x, player_y + v * player_speed.y);
 		SDL_Delay(100);
 	}
 	SDL_Delay(3000);
