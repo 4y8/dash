@@ -5,6 +5,7 @@
 
 int SCREEN_WIDTH  = 640;
 int SCREEN_HEIGHT = 480;
+int SPPED_COEF    = 2;
 
 int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
@@ -58,22 +59,6 @@ normalize(vector v)
 
 entity player;
 
-vector
-get_mouse(vector v)
-{
-	SDL_Event e;
-
-	while (SDL_PollEvent(&e))
-		if (e.type == SDL_MOUSEMOTION) {
-			v.x = e.motion.x - player.x;
-			v.y = e.motion.y - player.y;
-			return normalize(v);
-		} else {
-			return v;
-		}
-	return v;
-}
-
 void
 draw_rectangle (int x, int y, int w, int h, int color)
 {
@@ -98,6 +83,39 @@ draw_entity (entity e)
 	draw_rectangle(e.x, e.y, e.w, e.h, WHITE);
 }
 
+int
+mouseX()
+{
+	SDL_PumpEvents();
+	int x;
+	SDL_GetMouseState(&x, NULL);
+	return x;
+}
+
+int
+mouseY()
+{
+	SDL_PumpEvents();
+	int y;
+	SDL_GetMouseState(NULL, &y);
+	return y;
+}
+
+vector
+get_mouse_v(vector v)
+{
+	SDL_Event e;
+	int x;
+	int y;
+
+	x = mouseX();
+	y = mouseY();
+	v.x = x - 320;
+	v.y = y - 240;
+	return normalize(v);
+}
+
+
 entity_l
 build_walls (int w[6][8])
 {
@@ -112,10 +130,10 @@ build_walls (int w[6][8])
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < 8; j++) {
 			if (w[i][j]) {
-				e[p].x     = 60 * j;
-				e[p].y     = 60 * i;
-				e[p].w     = 60;
-				e[p].h     = 60;
+				e[p].x     = 80 * j;
+				e[p].y     = 80 * i;
+				e[p].w     = 80;
+				e[p].h     = 80;
 				e[p].speed = nv;
 				p ++;
 			}
@@ -128,11 +146,15 @@ build_walls (int w[6][8])
 void
 update_player(int x, int y)
 {
-	draw_rectangle(player.x, player.y, 10, 10, BLACK);
+
+	entity_l l = build_walls(walls);
+
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
 	player.x = x;
 	player.y = y;
-	draw_rectangle(player.x, player.y, 10, 10, WHITE);
-
+	draw_rectangle(player.x, player.y, 60, 60, WHITE);
+	draw_rectangle(315, 235, 10, 10, WHITE);
 }
 
 void
@@ -145,23 +167,19 @@ init()
 	renderer = SDL_CreateRenderer(screen, -1, 0);
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
 }
 
 int
 main()
 {
 	init();
-	entity_l l = build_walls(walls);
-
-		for (int i = 0; i < l.len; i++)
-			draw_entity(* (l.l + i));
-		int v = 2;
 	SDL_Delay(3000);
 	while (1) {
-		player.speed = get_mouse(player.speed);
-		update_player(player.x + v * player.speed.x, player.y + v * player.speed.y);
-		SDL_Delay(10);
-
+		player.speed = get_mouse_v(player.speed);
+		update_player(player.x - SPPED_COEF * player.speed.x,
+					  player.y - SPPED_COEF * player.speed.y);
+		SDL_Delay(16);
 	}
 	SDL_Quit();
 	return 0;
