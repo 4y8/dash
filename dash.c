@@ -5,7 +5,7 @@
 
 int SCREEN_WIDTH  = 640;
 int SCREEN_HEIGHT = 480;
-int SPPED_COEF    = 2;
+int SPPED_COEF    = 4;
 
 int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
@@ -22,7 +22,7 @@ typedef struct entity {
 } entity;
 
 typedef struct entity_l {
-	entity *l;
+	entity  l[48];
 	int     len;
 } entity_l;
 
@@ -74,13 +74,12 @@ draw_rectangle (int x, int y, int w, int h, int color)
 	rect.w = w;
 	rect.h = h;
 	SDL_RenderFillRect(renderer, &rect);
-	SDL_RenderPresent(renderer);
 }
 
 void
-draw_entity (entity e)
+draw_entity (entity e, int off_x, int off_y)
 {
-	draw_rectangle(e.x, e.y, e.w, e.h, WHITE);
+	draw_rectangle(e.x + off_x, e.y + off_y, e.w, e.h, WHITE);
 }
 
 int
@@ -119,7 +118,6 @@ get_mouse_v(vector v)
 entity_l
 build_walls (int w[6][8])
 {
-	entity   e[48];
 	entity_l l;
 	int      p;
 	vector   nv;
@@ -130,31 +128,32 @@ build_walls (int w[6][8])
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < 8; j++) {
 			if (w[i][j]) {
-				e[p].x     = 80 * j;
-				e[p].y     = 80 * i;
-				e[p].w     = 80;
-				e[p].h     = 80;
-				e[p].speed = nv;
+				l.l[p].x     = 80 * j;
+				l.l[p].y     = 80 * i;
+				l.l[p].w     = 80;
+				l.l[p].h     = 80;
+				l.l[p].speed = nv;
 				p ++;
 			}
 		}
 	l.len = p;
-	l.l   = e;
 	return l;
 }
 
 void
 update_player(int x, int y)
 {
+	entity_l l;
 
-	entity_l l = build_walls(walls);
-
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
 	player.x = x;
 	player.y = y;
-	draw_rectangle(player.x, player.y, 60, 60, WHITE);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
+	l = build_walls(walls);
+	for (int i = 0; i < l.len; i++)
+		draw_entity(l.l[i], x, y);
 	draw_rectangle(315, 235, 10, 10, WHITE);
+	SDL_RenderPresent(renderer);
 }
 
 void
