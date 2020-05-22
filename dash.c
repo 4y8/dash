@@ -140,18 +140,40 @@ build_walls (int w[6][8])
 	return l;
 }
 
+int
+detect_collision (entity e1, entity e2)
+{
+	return
+		(e1.x <= e2.x + e2.w) &&
+		(e1.x + e1.w >= e2.x) &&
+		(e1.y <= e2.y + e2.h) &&
+		(e1.y + e1.h >= e2.y);
+}
+
 void
 update_player(int x, int y)
 {
 	entity_l l;
+	int      col;
+	int      sx;
+	int      sy;
 
-	player.x = x;
-	player.y = y;
+	sx  = player.x;
+	sy  = player.y;
+	col = 0;
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 	l = build_walls(walls);
+	player.x = x;
+	player.y = y;
 	for (int i = 0; i < l.len; i++)
-		draw_entity(l.l[i], x, y);
+		col += detect_collision(l.l[i], player);
+	if (col) {
+		player.x = sx;
+		player.y = sy;
+	}
+	for (int i = 0; i < l.len; i++)
+		draw_entity(l.l[i], x - 315, y - 235);
 	draw_rectangle(315, 235, 10, 10, WHITE);
 	SDL_RenderPresent(renderer);
 }
@@ -159,6 +181,10 @@ update_player(int x, int y)
 void
 init()
 {
+	player.x = 315;
+	player.y = 235;
+	player.w = 10;
+	player.h = 10;
 	player.speed.x = 0;
 	player.speed.y = 0;
 	SDL_Init(SDL_INIT_EVERYTHING);
@@ -173,6 +199,17 @@ int
 main()
 {
 	init();
+	entity e1;
+	e1.x = 0;
+	e1.y = 0;
+	e1.w = 40;
+	e1.h = 40;
+	entity e2;
+	e2.x = 0;
+	e2.y = 100;
+	e2.w = 40;
+	e2.h = 40;
+	printf("%d\n", detect_collision(e1, e2));
 	SDL_Delay(3000);
 	while (1) {
 		player.speed = get_mouse_v(player.speed);
