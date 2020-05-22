@@ -6,6 +6,11 @@
 int SCREEN_WIDTH  = 640;
 int SCREEN_HEIGHT = 480;
 int SPPED_COEF    = 4;
+int PLAYER_WIDTH  = 10;
+int PLAYER_HEIGHT = 10;
+
+int start_x;
+int start_y;
 
 int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
@@ -16,12 +21,12 @@ typedef struct Vector {
 	float x, y;
 } vector;
 
-typedef struct entity {
+typedef struct Entity {
 	int    x, y, w, h;
 	vector speed;
 } entity;
 
-typedef struct entity_l {
+typedef struct Entity_l {
 	entity  l[48];
 	int     len;
 } entity_l;
@@ -59,25 +64,67 @@ normalize(vector v)
 
 entity player;
 
-void
-draw_rectangle (int x, int y, int w, int h, int color)
+SDL_Rect
+make_rect(int x, int y, int w, int h)
 {
-	SDL_Rect rect;
+	SDL_Rect r;
+
+	r.x = x;
+	r.y = y;
+	r.w = w;
+	r.h = h;
+	return r;
+}
+
+SDL_Point
+make_point(int x, int y)
+{
+	SDL_Point p;
+
+	p.x = x;
+	p.y = y;
+	return p;
+}
+
+void
+draw_rectangle(int x, int y, int w, int h, int color)
+{
+	SDL_Rect r;
 
 	SDL_SetRenderDrawColor(renderer,
 						   color & 0xFF0000 >> 16,
 						   color & 0x00FF00 >> 8,
 						   color & 0x0000FF,
 						   255);
-	rect.x = x;
-	rect.y = y;
-	rect.w = w;
-	rect.h = h;
-	SDL_RenderFillRect(renderer, &rect);
+	r = make_rect(x, y, w, h);
+	SDL_RenderFillRect(renderer, &r);
 }
 
 void
-draw_entity (entity e, int off_x, int off_y)
+draw_rectangle_a(int x, int y, int h, int w, int color, int angle)
+{
+	SDL_Surface *s;
+	SDL_Texture *t;
+	SDL_Rect    sr;
+	SDL_Rect    dr;
+	SDL_Point   p;
+
+	s = SDL_CreateRGBSurface(0, w, h, 24, 0, 0, 0, 0);
+	SDL_FillRect(s, NULL, SDL_MapRGB(s->format,
+									 color & 0xFF0000 >> 16,
+									 color & 0x00FF00 >> 8,
+									 color & 0x0000FF));
+	t = SDL_CreateTextureFromSurface(renderer, s);
+	SDL_FreeSurface(s);
+	puts("ee");
+	sr = make_rect(0, 0, w, h);
+	dr = make_rect(x, y, w, h);
+	p  = make_point(0, 0);
+	SDL_RenderCopyEx(renderer, t, &sr, &dr, angle, &p, SDL_FLIP_NONE);
+}
+
+void
+draw_entity(entity e, int off_x, int off_y)
 {
 	draw_rectangle(e.x + off_x, e.y + off_y, e.w, e.h, WHITE);
 }
@@ -114,9 +161,8 @@ get_mouse_v(vector v)
 	return normalize(v);
 }
 
-
 entity_l
-build_walls (int w[6][8])
+build_walls(int w[6][8])
 {
 	entity_l l;
 	int      p;
@@ -141,7 +187,7 @@ build_walls (int w[6][8])
 }
 
 int
-detect_collision (entity e1, entity e2)
+detect_collision(entity e1, entity e2)
 {
 	return
 		(e1.x <= e2.x + e2.w) &&
@@ -173,50 +219,55 @@ update_player(int x, int y)
 		player.y = sy;
 	}
 	for (int i = 0; i < l.len; i++)
-		draw_entity(l.l[i], x - 315, y - 235);
-	draw_rectangle(315, 235, 10, 10, WHITE);
+		draw_entity(l.l[i], x - start_x, y - start_y);
+	draw_rectangle(start_x,
+				   start_y,
+				   PLAYER_WIDTH,
+				   PLAYER_HEIGHT,
+				   WHITE);
+	/* Only apply the renderings after at the end to avoid flickering. */
 	SDL_RenderPresent(renderer);
 }
 
 void
 init()
 {
-	player.x = 315;
-	player.y = 235;
-	player.w = 10;
-	player.h = 10;
+	/* Setup the initial position and size of the player. */
+	start_x  = 320 - PLAYER_WIDTH / 2;
+	start_y  = 240 - PLAYER_HEIGHT / 2;
+	player.x = start_x;
+	player.y = start_y;
+	player.w = PLAYER_WIDTH;
+	player.h = PLAYER_HEIGHT;
 	player.speed.x = 0;
 	player.speed.y = 0;
-	SDL_Init(SDL_INIT_EVERYTHING);
+	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+		printf("Error: SDL initialization error: %s\n", SDL_GetError());
 	screen = SDL_CreateWindow("dash", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
+	if (!screen)
+		printf("Error: Unable to create the SDL window: %s\n", SDL_GetError());
 	renderer = SDL_CreateRenderer(screen, -1, 0);
+	if (!renderer)
+		printf("Error: Unable to create the SDL renderer: %s\n", SDL_GetError());
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
+}
+
+int
+main_loop()
+{
+	for (;;) {
+		player.speed = get_mouse_v(player.speed);
+		update_player(player.x - SPPED_COEF * player.speed.x,
+					  player.y - SPPED_COEF * player.speed.y);
+		SDL_Delay(16);
+	}
 }
 
 int
 main()
 {
 	init();
-	entity e1;
-	e1.x = 0;
-	e1.y = 0;
-	e1.w = 40;
-	e1.h = 40;
-	entity e2;
-	e2.x = 0;
-	e2.y = 100;
-	e2.w = 40;
-	e2.h = 40;
-	printf("%d\n", detect_collision(e1, e2));
-	SDL_Delay(3000);
-	while (1) {
-		player.speed = get_mouse_v(player.speed);
-		update_player(player.x - SPPED_COEF * player.speed.x,
-					  player.y - SPPED_COEF * player.speed.y);
-		SDL_Delay(16);
-	}
+	main_loop();
 	SDL_Quit();
 	return 0;
 }
