@@ -3,9 +3,11 @@
 #include <SDL2/SDL.h>
 #include <math.h>
 
+double PI = 3.14159265;
+
 int SCREEN_WIDTH  = 640;
 int SCREEN_HEIGHT = 480;
-int SPPED_COEF    = 4;
+int SPEED_COEF    = 4;
 int PLAYER_WIDTH  = 10;
 int PLAYER_HEIGHT = 10;
 
@@ -101,13 +103,12 @@ draw_rectangle(int x, int y, int w, int h, int color)
 }
 
 void
-draw_rectangle_a(int x, int y, int h, int w, int color, int angle)
+draw_rectangle_a(int x, int y, int h, int w, int color, double angle)
 {
 	SDL_Surface *s;
 	SDL_Texture *t;
 	SDL_Rect    sr;
 	SDL_Rect    dr;
-	SDL_Point   p;
 
 	s = SDL_CreateRGBSurface(0, w, h, 24, 0, 0, 0, 0);
 	SDL_FillRect(s, NULL, SDL_MapRGB(s->format,
@@ -116,11 +117,9 @@ draw_rectangle_a(int x, int y, int h, int w, int color, int angle)
 									 color & 0x0000FF));
 	t = SDL_CreateTextureFromSurface(renderer, s);
 	SDL_FreeSurface(s);
-	puts("ee");
 	sr = make_rect(0, 0, w, h);
 	dr = make_rect(x, y, w, h);
-	p  = make_point(0, 0);
-	SDL_RenderCopyEx(renderer, t, &sr, &dr, angle, &p, SDL_FLIP_NONE);
+	SDL_RenderCopyEx(renderer, t, &sr, &dr, angle, NULL, SDL_FLIP_NONE);
 }
 
 void
@@ -148,11 +147,12 @@ mouseY()
 }
 
 vector
-get_mouse_v(vector v)
+get_mouse_v()
 {
 	SDL_Event e;
-	int x;
-	int y;
+	int       x;
+	int       y;
+	vector    v;
 
 	x = mouseX();
 	y = mouseY();
@@ -217,6 +217,8 @@ update_player(int x, int y)
 	if (col) {
 		player.x = sx;
 		player.y = sy;
+		player.speed.x = 0;
+		player.speed.y = 0;
 	}
 	for (int i = 0; i < l.len; i++)
 		draw_entity(l.l[i], x - start_x, y - start_y);
@@ -252,13 +254,56 @@ init()
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
-int
+void
+draw_sword()
+{
+	double a;
+
+	a = atan2(player.speed.y, player.speed.x);
+	a *= 180 / PI;
+	printf("%lf\n", a);
+	if ((a > 135) || (a < -135))
+		draw_rectangle(start_x - 10, start_y - 10, 10, 30, WHITE);
+	else if (a > 45)
+		draw_rectangle(start_x - 10, start_y + 10, 30, 10, WHITE);
+	else if (a < -45)
+		draw_rectangle(start_x - 10, start_y - 10, 30, 10, WHITE);
+	else
+		draw_rectangle(start_x + 10, start_y - 10, 10, 30, WHITE);
+
+}
+
+void
+handle_input()
+{
+	SDL_Event e;
+
+	if (SDL_PollEvent(&e))
+		switch (e.type){
+			case SDL_QUIT:
+				SDL_Quit();
+				exit(0);
+				break;
+			case SDL_MOUSEBUTTONDOWN:
+				if (e.button.button == SDL_BUTTON_LEFT)
+					draw_sword();
+				SDL_RenderPresent(renderer);
+				SDL_Delay(200);
+				break;
+			default:
+				break;
+		}
+
+}
+
+void
 main_loop()
 {
 	for (;;) {
-		player.speed = get_mouse_v(player.speed);
-		update_player(player.x - SPPED_COEF * player.speed.x,
-					  player.y - SPPED_COEF * player.speed.y);
+		handle_input();
+		player.speed = get_mouse_v();
+		update_player(player.x - SPEED_COEF * player.speed.x,
+					  player.y - SPEED_COEF * player.speed.y);
 		SDL_Delay(16);
 	}
 }
