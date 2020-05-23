@@ -3,6 +3,25 @@
 #include <SDL2/SDL.h>
 #include <math.h>
 
+typedef struct Vector {
+	float x, y;
+} vector;
+
+typedef struct Entity {
+	int    x, y, w, h;
+	vector s;
+} entity;
+
+typedef struct Entity_l {
+	entity  l[48];
+	int     len;
+} entity_l;
+
+typedef struct Force {
+	vector v;
+	int    t;
+} force;
+
 double PI = 3.14159265;
 
 int SCREEN_WIDTH  = 640;
@@ -11,17 +30,28 @@ int SPEED_COEF    = 3;
 int PLAYER_WIDTH  = 10;
 int PLAYER_HEIGHT = 10;
 
+int WHITE = 0xFFFFFF, BLACK = 0x000000;
+
 int start_x;
 int start_y;
 
-int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
 SDL_Window   *screen;
 SDL_Renderer *renderer;
 
-typedef struct Vector {
-	float x, y;
-} vector;
+force forces[3];
+
+entity_l walls_e;
+
+entity player;
+
+int walls[6][8] = {
+{1, 1, 1, 1, 1, 1, 1, 1},
+{1, 0, 0, 0, 0, 0, 0, 1},
+{1, 0, 0, 0, 0, 0, 0, 1},
+{1, 0, 0, 0, 0, 0, 0, 1},
+{1, 0, 0, 0, 0, 0, 0, 1},
+{1, 1, 1, 1, 1, 1, 1, 1}};
 
 vector
 make_vector(int x, int y)
@@ -34,11 +64,6 @@ make_vector(int x, int y)
 }
 
 vector NULL_VECTOR;
-
-typedef struct Entity {
-	int    x, y, w, h;
-	vector s;
-} entity;
 
 entity
 make_entity(int x, int y, int w, int h, vector s)
@@ -53,39 +78,15 @@ make_entity(int x, int y, int w, int h, vector s)
 	return e;
 }
 
-typedef struct Entity_l {
-	entity  l[48];
-	int     len;
-} entity_l;
-
-float
-norm(vector v)
+force
+make_force(vector v, int t)
 {
-	return (sqrtf (v.x * v.x + v.y * v.y));
+	force f;
+
+	f.v = v;
+	f.t = t;
+	return f;
 }
-
-int walls[6][8] = {
-{1, 1, 1, 1, 1, 1, 1, 1},
-{1, 0, 0, 0, 0, 0, 0, 1},
-{1, 0, 0, 0, 0, 0, 0, 1},
-{1, 0, 0, 0, 0, 0, 0, 1},
-{1, 0, 0, 0, 0, 0, 0, 1},
-{1, 1, 1, 1, 1, 1, 1, 1}};
-
-vector
-normalize(vector v)
-{
-	float n;
-
-	n = norm(v);
-	if (n == 0) return NULL_VECTOR;
-	v.x /= n;
-	v.y /= n;
-	return v;
-
-}
-
-entity player;
 
 SDL_Rect
 make_rect(int x, int y, int w, int h)
@@ -107,6 +108,25 @@ make_point(int x, int y)
 	p.x = x;
 	p.y = y;
 	return p;
+}
+
+float
+norm(vector v)
+{
+	return (sqrtf (v.x * v.x + v.y * v.y));
+}
+
+vector
+normalize(vector v)
+{
+	float n;
+
+	n = norm(v);
+	if (n == 0) return NULL_VECTOR;
+	v.x /= n;
+	v.y /= n;
+	return v;
+
 }
 
 void
@@ -205,6 +225,14 @@ detect_collision(entity e1, entity e2)
 		(e1.y + e1.h >= e2.y);
 }
 
+int
+collide_walls (entity e)
+{
+	for (int i = 0; i < walls_e.len; i++)
+		if (detect_collision(walls_e.l[i], e)) return 1;
+	return 0;
+}
+
 void
 update_player(int x, int y)
 {
@@ -218,19 +246,16 @@ update_player(int x, int y)
 	col = 0;
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
-	l = build_walls(walls);
 	player.x = x;
 	player.y = y;
-	for (int i = 0; i < l.len; i++)
-		col += detect_collision(l.l[i], player);
-	if (col) {
+	if (collide_walls(player)) {
 		player.x   = sx;
 		player.y   = sy;
 		player.s.x = 0;
 		player.s.y = 0;
 	}
-	for (int i = 0; i < l.len; i++)
-		draw_entity(l.l[i], x - start_x, y - start_y);
+	for (int i = 0; i < walls_e.len; i++)
+		draw_entity(walls_e.l[i], x - start_x, y - start_y);
 	draw_rectangle(start_x,
 				   start_y,
 				   PLAYER_WIDTH,
@@ -252,6 +277,8 @@ init()
 							  PLAYER_WIDTH,
 							  PLAYER_HEIGHT,
 							  NULL_VECTOR);
+	walls_e     = build_walls(walls);
+	for (int i = 0; i < 3; i++) forces[i] = make_force(NULL_VECTOR, 0);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
 	screen = SDL_CreateWindow("dash", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
@@ -273,12 +300,9 @@ draw_sword()
 	a *= 180 / PI;
 	if ((a > 135) || (a < -135))
 		draw_rectangle(start_x - 10, start_y - 10, 10, 30, WHITE);
-	else if (a > 45)
-		draw_rectangle(start_x - 10, start_y + 10, 30, 10, WHITE);
-	else if (a < -45)
-		draw_rectangle(start_x - 10, start_y - 10, 30, 10, WHITE);
-	else
-		draw_rectangle(start_x + 10, start_y - 10, 10, 30, WHITE);
+	else if (a > 45)  draw_rectangle(start_x - 10, start_y + 10, 30, 10, WHITE);
+	else if (a < -45) draw_rectangle(start_x - 10, start_y - 10, 30, 10, WHITE);
+	else              draw_rectangle(start_x + 10, start_y - 10, 10, 30, WHITE);
 
 }
 
@@ -293,13 +317,17 @@ handle_input()
 				SDL_Quit();
 				exit(0);
 				break;
-			case SDL_MOUSEBUTTONDOWN:
-				if (e.button.button == SDL_BUTTON_LEFT)
-					draw_sword();
-				SDL_RenderPresent(renderer);
-				SDL_Delay(80);
+			case SDL_MOUSEBUTTONDOWN: {
+				if (e.button.button == SDL_BUTTON_LEFT) {
+					entity h;
 
+					h = make_entity(player.x - 10, player.y - 10, 30, 30, NULL_VECTOR);
+					draw_sword();
+					SDL_RenderPresent(renderer);
+					SDL_Delay(80);
+				}
 				break;
+			}
 			default:
 				break;
 		}
