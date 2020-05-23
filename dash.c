@@ -7,7 +7,7 @@ double PI = 3.14159265;
 
 int SCREEN_WIDTH  = 640;
 int SCREEN_HEIGHT = 480;
-int SPEED_COEF    = 4;
+int SPEED_COEF    = 3;
 int PLAYER_WIDTH  = 10;
 int PLAYER_HEIGHT = 10;
 
@@ -23,10 +23,35 @@ typedef struct Vector {
 	float x, y;
 } vector;
 
+vector
+make_vector(int x, int y)
+{
+	vector v;
+
+	v.x = x;
+	v.y = y;
+	return v;
+}
+
+vector NULL_VECTOR;
+
 typedef struct Entity {
 	int    x, y, w, h;
-	vector speed;
+	vector s;
 } entity;
+
+entity
+make_entity(int x, int y, int w, int h, vector s)
+{
+	entity e;
+
+	e.x = x;
+	e.y = y;
+	e.w = w;
+	e.h = h;
+	e.s = s;
+	return e;
+}
 
 typedef struct Entity_l {
 	entity  l[48];
@@ -53,11 +78,7 @@ normalize(vector v)
 	float n;
 
 	n = norm(v);
-	if (n == 0) {
-		v.x = 0;
-		v.y = 0;
-		return v;
-	}
+	if (n == 0) return NULL_VECTOR;
 	v.x /= n;
 	v.y /= n;
 	return v;
@@ -152,13 +173,10 @@ get_mouse_v()
 	SDL_Event e;
 	int       x;
 	int       y;
-	vector    v;
 
 	x = mouseX();
 	y = mouseY();
-	v.x = x - 320;
-	v.y = y - 240;
-	return normalize(v);
+	return normalize(make_vector(x - 320, y - 240));
 }
 
 entity_l
@@ -168,21 +186,12 @@ build_walls(int w[6][8])
 	int      p;
 	vector   nv;
 
-	p    = 0;
-	nv.x = 0;
-	nv.y = 0;
+	p  = -1;
 	for (int i = 0; i < 6; i++)
-		for (int j = 0; j < 8; j++) {
-			if (w[i][j]) {
-				l.l[p].x     = 80 * j;
-				l.l[p].y     = 80 * i;
-				l.l[p].w     = 80;
-				l.l[p].h     = 80;
-				l.l[p].speed = nv;
-				p ++;
-			}
-		}
-	l.len = p;
+		for (int j = 0; j < 8; j++)
+			if (w[i][j])
+				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80, NULL_VECTOR);
+	l.len = ++p;
 	return l;
 }
 
@@ -215,10 +224,10 @@ update_player(int x, int y)
 	for (int i = 0; i < l.len; i++)
 		col += detect_collision(l.l[i], player);
 	if (col) {
-		player.x = sx;
-		player.y = sy;
-		player.speed.x = 0;
-		player.speed.y = 0;
+		player.x   = sx;
+		player.y   = sy;
+		player.s.x = 0;
+		player.s.y = 0;
 	}
 	for (int i = 0; i < l.len; i++)
 		draw_entity(l.l[i], x - start_x, y - start_y);
@@ -235,14 +244,14 @@ void
 init()
 {
 	/* Setup the initial position and size of the player. */
-	start_x  = 320 - PLAYER_WIDTH / 2;
-	start_y  = 240 - PLAYER_HEIGHT / 2;
-	player.x = start_x;
-	player.y = start_y;
-	player.w = PLAYER_WIDTH;
-	player.h = PLAYER_HEIGHT;
-	player.speed.x = 0;
-	player.speed.y = 0;
+	NULL_VECTOR = make_vector(0, 0);
+	start_x     = 320 - PLAYER_WIDTH / 2;
+	start_y     = 240 - PLAYER_HEIGHT / 2;
+	player      = make_entity(start_x,
+							  start_y,
+							  PLAYER_WIDTH,
+							  PLAYER_HEIGHT,
+							  NULL_VECTOR);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
 	screen = SDL_CreateWindow("dash", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
@@ -258,10 +267,10 @@ void
 draw_sword()
 {
 	double a;
+	entity hitbox;
 
-	a = atan2(player.speed.y, player.speed.x);
+	a = atan2(player.s.y, player.s.x);
 	a *= 180 / PI;
-	printf("%lf\n", a);
 	if ((a > 135) || (a < -135))
 		draw_rectangle(start_x - 10, start_y - 10, 10, 30, WHITE);
 	else if (a > 45)
@@ -288,7 +297,8 @@ handle_input()
 				if (e.button.button == SDL_BUTTON_LEFT)
 					draw_sword();
 				SDL_RenderPresent(renderer);
-				SDL_Delay(200);
+				SDL_Delay(80);
+
 				break;
 			default:
 				break;
@@ -301,10 +311,10 @@ main_loop()
 {
 	for (;;) {
 		handle_input();
-		player.speed = get_mouse_v();
-		update_player(player.x - SPEED_COEF * player.speed.x,
-					  player.y - SPEED_COEF * player.speed.y);
-		SDL_Delay(16);
+		player.s = get_mouse_v();
+		update_player(player.x - SPEED_COEF * player.s.x,
+					  player.y - SPEED_COEF * player.s.y);
+		SDL_Delay(10);
 	}
 }
 
