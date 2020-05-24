@@ -30,11 +30,15 @@ int SPEED_COEF    = 3;
 int PLAYER_WIDTH  = 10;
 int PLAYER_HEIGHT = 10;
 int NFORCES       = 3;
+int SWORD_LENGTH  = 16;
+int SWORD_WIDTH   = 10;
+int SWORD_HEIGHT  = 40;
 
 int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
 int start_x;
 int start_y;
+int sw_off;
 int has_sword;
 
 SDL_Window   *screen;
@@ -275,6 +279,7 @@ init()
 							  PLAYER_HEIGHT,
 							  NULL_VECTOR);
 	walls_e     = build_walls(walls);
+	sw_off = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
@@ -295,12 +300,26 @@ draw_sword()
 
 	a = atan2(player.s.y, player.s.x);
 	a *= 180 / PI;
-	if ((a > 135) || (a < -135))
-		draw_rectangle(start_x - 10, start_y - 10, 10, 30, WHITE);
-	else if (a > 45)  draw_rectangle(start_x - 10, start_y + 10, 30, 10, WHITE);
-	else if (a < -45) draw_rectangle(start_x - 10, start_y - 10, 30, 10, WHITE);
-	else              draw_rectangle(start_x + 10, start_y - 10, 10, 30, WHITE);
-
+	if ((a > 135) || (a < -135)) draw_rectangle(start_x - PLAYER_WIDTH,
+												start_y - sw_off,
+												SWORD_WIDTH,
+												SWORD_HEIGHT,
+												WHITE);
+	else if (a > 45)  draw_rectangle(start_x - sw_off,
+									 start_y + PLAYER_WIDTH,
+									 SWORD_HEIGHT,
+									 SWORD_WIDTH,
+									 WHITE);
+	else if (a < -45) draw_rectangle(start_x - sw_off,
+									 start_y - PLAYER_WIDTH,
+									 SWORD_HEIGHT,
+									 SWORD_WIDTH,
+									 WHITE);
+	else              draw_rectangle(start_x + PLAYER_WIDTH,
+									 start_y - sw_off,
+									 SWORD_WIDTH,
+									 SWORD_HEIGHT,
+									 WHITE);
 }
 
 void
@@ -326,7 +345,7 @@ handle_input()
 				break;
 			case SDL_MOUSEBUTTONDOWN: {
 				if (e.button.button == SDL_BUTTON_LEFT)
-					has_sword = 12;
+					has_sword = SWORD_LENGTH;
 				break;
 			}
 			default:
