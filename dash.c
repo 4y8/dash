@@ -35,7 +35,7 @@ int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
 int start_x;
 int start_y;
-
+int has_sword;
 
 SDL_Window   *screen;
 SDL_Renderer *renderer;
@@ -247,11 +247,10 @@ update_player(int x, int y)
 	col = 0;
 	player.x = x;
 	player.y = y;
+	for (int i = 0; i < NFORCES; i++)
 	if (collide_walls(player)) {
 		player.x   = sx;
 		player.y   = sy;
-		player.s.x = 0;
-		player.s.y = 0;
 	}
 	for (int i = 0; i < walls_e.len; i++)
 		draw_entity(walls_e.l[i], x - start_x, y - start_y);
@@ -326,14 +325,8 @@ handle_input()
 				exit(0);
 				break;
 			case SDL_MOUSEBUTTONDOWN: {
-				if (e.button.button == SDL_BUTTON_LEFT) {
-					entity h;
-
-					h = make_entity(player.x - 10, player.y - 10, 30, 30, NULL_VECTOR);
-					draw_sword();
-					if (collide_walls(h))
-						add_force(make_vector(-1 * player.s.x, -1 * player.s.y), 500);
-				}
+				if (e.button.button == SDL_BUTTON_LEFT)
+					has_sword = 12;
 				break;
 			}
 			default:
@@ -352,6 +345,15 @@ main_loop()
 		player.s = get_mouse_v();
 		update_player(player.x - SPEED_COEF * player.s.x,
 					  player.y - SPEED_COEF * player.s.y);
+		if (has_sword) {
+			entity h;
+
+			h = make_entity(player.x - 10, player.y - 10, 30, 30, NULL_VECTOR);
+			if (collide_walls(h))
+				add_force(make_vector(-1 * player.s.x, -1 * player.s.y), 500);
+			has_sword --;
+			draw_sword();
+		}
 		SDL_RenderPresent(renderer);
 		for (int i = 0; i < NFORCES; i++) forces[i].t --;
 		SDL_Delay(10);
