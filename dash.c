@@ -252,6 +252,10 @@ update_player(int x, int y)
 	player.x = x;
 	player.y = y;
 	for (int i = 0; i < NFORCES; i++)
+		if (forces[i].t) {
+			player.x += forces[i].v.x * forces[i].t / 250;
+			player.y += forces[i].v.y * forces[i].t / 250;
+		}
 	if (collide_walls(player)) {
 		player.x   = sx;
 		player.y   = sy;
@@ -279,7 +283,7 @@ init()
 							  PLAYER_HEIGHT,
 							  NULL_VECTOR);
 	walls_e     = build_walls(walls);
-	sw_off = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
+	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
@@ -326,7 +330,7 @@ void
 add_force(vector v, int t)
 {
 	for (int i = 0; i < NFORCES; i ++)
-		if (forces[i].t <= 0) {
+		if (!forces[i].t) {
 			forces[i] = make_force(v, t);
 			return;
 		}
@@ -360,21 +364,20 @@ main_loop()
 	for (;;) {
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
-		handle_input();
-		player.s = get_mouse_v();
-		update_player(player.x - SPEED_COEF * player.s.x,
-					  player.y - SPEED_COEF * player.s.y);
 		if (has_sword) {
 			entity h;
 
 			h = make_entity(player.x - 10, player.y - 10, 30, 30, NULL_VECTOR);
 			if (collide_walls(h))
-				add_force(make_vector(-1 * player.s.x, -1 * player.s.y), 500);
+				add_force(make_vector(SPEED_COEF * player.s.x, SPEED_COEF * player.s.y), 50);
 			has_sword --;
 			draw_sword();
-		}
+		} handle_input();
+		player.s = get_mouse_v();
+		update_player(player.x - SPEED_COEF * player.s.x,
+					  player.y - SPEED_COEF * player.s.y);
 		SDL_RenderPresent(renderer);
-		for (int i = 0; i < NFORCES; i++) forces[i].t --;
+		for (int i = 0; i < NFORCES; i++) if (forces[i].t) forces[i].t --;
 		SDL_Delay(10);
 	}
 }
