@@ -211,7 +211,7 @@ build_walls(int w[6][8])
 	int      p;
 	vector   nv;
 
-	p  = -1;
+	p = -1;
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < 8; j++)
 			if (w[i][j])
@@ -255,6 +255,7 @@ update_player(int x, int y)
 		if (forces[i].t) {
 			player.x += forces[i].v.x * forces[i].t / 250;
 			player.y += forces[i].v.y * forces[i].t / 250;
+			printf("%lf\n", forces[i].v.y * forces[i].t / 250);
 		}
 	if (collide_walls(player)) {
 		player.x   = sx;
@@ -267,7 +268,6 @@ update_player(int x, int y)
 				   PLAYER_WIDTH,
 				   PLAYER_HEIGHT,
 				   WHITE);
-	/* Only apply the renderings after at the end to avoid flickering. */
 }
 
 void
@@ -366,8 +366,10 @@ main_loop()
 		SDL_RenderClear(renderer);
 		if (has_sword) {
 			entity h;
+			float w;
 
-			h = make_entity(player.x - 10, player.y - 10, 30, 30, NULL_VECTOR);
+			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
+			h = make_entity(player.x - sw_off, player.y - sw_off, w, w, NULL_VECTOR);
 			if (collide_walls(h))
 				add_force(make_vector(SPEED_COEF * player.s.x, SPEED_COEF * player.s.y), 50);
 			has_sword --;
@@ -376,6 +378,8 @@ main_loop()
 		player.s = get_mouse_v();
 		update_player(player.x - SPEED_COEF * player.s.x,
 					  player.y - SPEED_COEF * player.s.y);
+
+		/* Only apply the renderings after at the end to avoid flickering. */
 		SDL_RenderPresent(renderer);
 		for (int i = 0; i < NFORCES; i++) if (forces[i].t) forces[i].t --;
 		SDL_Delay(10);
