@@ -8,7 +8,7 @@ typedef struct Vector {
 } vector;
 
 typedef struct Entity {
-	int    x, y, w, h;
+	float    x, y, w, h;
 	vector s;
 } entity;
 
@@ -255,7 +255,7 @@ update_player(int x, int y)
 		if (forces[i].t) {
 			player.x += forces[i].v.x * forces[i].t / 250;
 			player.y += forces[i].v.y * forces[i].t / 250;
-			printf("%lf\n", forces[i].v.y * forces[i].t / 250);
+			printf("x:%lf\ny:%lf\n", player.x, player.y);
 		}
 	if (collide_walls(player)) {
 		player.x   = sx;
@@ -371,7 +371,7 @@ main_loop()
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
 			h = make_entity(player.x - sw_off, player.y - sw_off, w, w, NULL_VECTOR);
 			if (collide_walls(h))
-				add_force(make_vector(SPEED_COEF * player.s.x, SPEED_COEF * player.s.y), 50);
+				add_force(make_vector(5 * SPEED_COEF * player.s.x, 5 * SPEED_COEF * player.s.y), 50);
 			has_sword --;
 			draw_sword();
 		} handle_input();
