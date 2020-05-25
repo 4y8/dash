@@ -3,24 +3,24 @@
 #include <SDL2/SDL.h>
 #include <math.h>
 
-typedef struct Vector {
+typedef struct Vector2 {
 	float x, y;
-} vector;
+} Vector2;
 
 typedef struct Entity {
 	float    x, y, w, h;
-	vector s;
-} entity;
+	Vector2 s;
+} Entity;
 
 typedef struct Entity_l {
-	entity  l[48];
+	Entity  l[48];
 	int     len;
-} entity_l;
+} Entity_l;
 
 typedef struct Force {
-	vector v;
+	Vector2 v;
 	int    t;
-} force;
+} Force;
 
 double PI = 3.14159265;
 
@@ -29,7 +29,7 @@ double PI = 3.14159265;
 #define SPEED_COEF    4
 #define PLAYER_WIDTH  10
 #define PLAYER_HEIGHT 10
-#define NFORCES       5
+#define NFORCES       1
 #define SWORD_LENGTH  16
 #define SWORD_WIDTH   10
 #define SWORD_HEIGHT  30
@@ -44,11 +44,11 @@ int has_sword;
 SDL_Window   *screen;
 SDL_Renderer *renderer;
 
-force forces[NFORCES];
+Force forces[NFORCES];
 
-entity_l walls_e;
+Entity_l walls_e;
 
-entity player;
+Entity player;
 
 int walls[6][8] = {
 {1, 1, 1, 1, 1, 1, 1, 1},
@@ -58,22 +58,22 @@ int walls[6][8] = {
 {1, 0, 0, 0, 0, 0, 0, 1},
 {1, 1, 1, 1, 1, 1, 1, 1}};
 
-vector
-make_vector(int x, int y)
+Vector2
+make_vector2(int x, int y)
 {
-	vector v;
+	Vector2 v;
 
 	v.x = x;
 	v.y = y;
 	return v;
 }
 
-vector NULL_VECTOR;
+Vector2 NULL_VECTOR;
 
-entity
-make_entity(int x, int y, int w, int h, vector s)
+Entity
+make_entity(int x, int y, int w, int h, Vector2 s)
 {
-	entity e;
+	Entity e;
 
 	e.x = x;
 	e.y = y;
@@ -83,10 +83,10 @@ make_entity(int x, int y, int w, int h, vector s)
 	return e;
 }
 
-force
-make_force(vector v, int t)
+Force
+make_force(Vector2 v, int t)
 {
-	force f;
+	Force f;
 
 	f.v = v;
 	f.t = t;
@@ -116,13 +116,13 @@ make_point(int x, int y)
 }
 
 float
-norm(vector v)
+norm(Vector2 v)
 {
 	return (sqrtf (v.x * v.x + v.y * v.y));
 }
 
-vector
-normalize(vector v)
+Vector2
+normalize(Vector2 v)
 {
 	float n;
 
@@ -169,7 +169,7 @@ draw_rectangle_a(int x, int y, int h, int w, int color, double angle)
 }
 
 void
-draw_entity(entity e, int off_x, int off_y)
+draw_entity(Entity e, int off_x, int off_y)
 {
 	draw_rectangle(e.x + off_x, e.y + off_y, e.w, e.h, WHITE);
 }
@@ -192,7 +192,7 @@ mouseY()
 	return y;
 }
 
-vector
+Vector2
 get_mouse_v()
 {
 	SDL_Event e;
@@ -202,15 +202,15 @@ get_mouse_v()
 	SDL_PumpEvents();
 	x = mouseX();
 	y = mouseY();
-	return normalize(make_vector(x - 320, y - 240));
+	return normalize(make_vector2(x - 320, y - 240));
 }
 
-entity_l
+Entity_l
 build_walls(int w[6][8])
 {
-	entity_l l;
+	Entity_l l;
 	int      p;
-	vector   nv;
+	Vector2   nv;
 
 	p = -1;
 	for (int i = 0; i < 6; i++)
@@ -222,7 +222,7 @@ build_walls(int w[6][8])
 }
 
 int
-detect_collision(entity e1, entity e2)
+detect_collision(Entity e1, Entity e2)
 {
 	return
 		(e1.x <= e2.x + e2.w) &&
@@ -232,7 +232,7 @@ detect_collision(entity e1, entity e2)
 }
 
 int
-collide_walls (entity e)
+collide_walls (Entity e)
 {
 	for (int i = 0; i < walls_e.len; i++)
 		if (detect_collision(walls_e.l[i], e)) return 1;
@@ -242,7 +242,7 @@ collide_walls (entity e)
 void
 update_player(int x, int y)
 {
-	entity_l l;
+	Entity_l l;
 	int      col;
 	int      sx;
 	int      sy;
@@ -275,7 +275,7 @@ void
 init()
 {
 	/* Setup the initial position and size of the player. */
-	NULL_VECTOR = make_vector(0, 0);
+	NULL_VECTOR = make_vector2(0, 0);
 	start_x     = 320 - PLAYER_WIDTH / 2;
 	start_y     = 240 - PLAYER_HEIGHT / 2;
 	player      = make_entity(start_x,
@@ -301,7 +301,7 @@ void
 draw_sword()
 {
 	double a;
-	entity hitbox;
+	Entity hitbox;
 
 	a = atan2(player.s.y, player.s.x);
 	a *= 180 / PI;
@@ -328,13 +328,10 @@ draw_sword()
 }
 
 void
-add_force(vector v, int t)
+add_force(Vector2 v, int t)
 {
-	for (int i = 0; i < NFORCES; i ++)
-		if (!forces[i].t) {
-			forces[i] = make_force(v, t);
-			return;
-		}
+	forces[0] = make_force(v, t);
+	return;
 }
 
 void
@@ -366,15 +363,15 @@ main_loop()
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
 		if (has_sword) {
-			entity h;
+			Entity h;
 			float  w;
-			entity sp;
+			Entity sp;
 
-			sp = make_entity(player.x - 1, player.y - 1, player.w + 2, player.h + 2, NULL_VECTOR);
+			sp = make_entity(player.x - 2, player.y - 2, player.w + 4, player.h + 4, NULL_VECTOR);
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
 			h = make_entity(player.x - sw_off, player.y - sw_off, w, w, NULL_VECTOR);
 			if ((collide_walls(h) && (!collide_walls(sp))))
-				add_force(make_vector(10 * SPEED_COEF * player.s.x, 10 * SPEED_COEF * player.s.y), 50);
+				add_force(make_vector2(15 * SPEED_COEF * player.s.x, 15 * SPEED_COEF * player.s.y), 50);
 			has_sword --;
 			draw_sword();
 		} handle_input();
