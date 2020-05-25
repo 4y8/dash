@@ -28,11 +28,11 @@ int SCREEN_WIDTH  = 640;
 int SCREEN_HEIGHT = 480;
 int SPEED_COEF    = 3;
 int PLAYER_WIDTH  = 10;
-int PLAYER_HEIGHT = 10;
-int NFORCES       = 3;
-int SWORD_LENGTH  = 16;
+#define PLAYER_HEIGHT 10
+#define NFORCES       10
+#define SWORD_LENGTH  12
 int SWORD_WIDTH   = 10;
-int SWORD_HEIGHT  = 40;
+int SWORD_HEIGHT  = 30;
 
 int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
@@ -44,7 +44,7 @@ int has_sword;
 SDL_Window   *screen;
 SDL_Renderer *renderer;
 
-force forces[3];
+force forces[NFORCES];
 
 entity_l walls_e;
 
@@ -366,11 +366,13 @@ main_loop()
 		SDL_RenderClear(renderer);
 		if (has_sword) {
 			entity h;
-			float w;
+			float  w;
+			entity sp;
 
+			sp = make_entity(player.x - 2, player.x - 2, player.w + 4, player.h + 4, NULL_VECTOR);
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
 			h = make_entity(player.x - sw_off, player.y - sw_off, w, w, NULL_VECTOR);
-			if (collide_walls(h))
+			if ((collide_walls(h) && (!collide_walls(sp))))
 				add_force(make_vector(5 * SPEED_COEF * player.s.x, 5 * SPEED_COEF * player.s.y), 50);
 			has_sword --;
 			draw_sword();
