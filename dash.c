@@ -24,15 +24,15 @@ typedef struct Force {
 
 double PI = 3.14159265;
 
-int SCREEN_WIDTH  = 640;
-int SCREEN_HEIGHT = 480;
-int SPEED_COEF    = 3;
-int PLAYER_WIDTH  = 10;
+#define SCREEN_WIDTH  640
+#define SCREEN_HEIGHT 480
+#define SPEED_COEF    4
+#define PLAYER_WIDTH  10
 #define PLAYER_HEIGHT 10
-#define NFORCES       10
-#define SWORD_LENGTH  12
-int SWORD_WIDTH   = 10;
-int SWORD_HEIGHT  = 30;
+#define NFORCES       5
+#define SWORD_LENGTH  16
+#define SWORD_WIDTH   10
+#define SWORD_HEIGHT  30
 
 int WHITE = 0xFFFFFF, BLACK = 0x000000;
 
@@ -177,8 +177,8 @@ draw_entity(entity e, int off_x, int off_y)
 int
 mouseX()
 {
-	SDL_PumpEvents();
 	int x;
+
 	SDL_GetMouseState(&x, NULL);
 	return x;
 }
@@ -186,8 +186,8 @@ mouseX()
 int
 mouseY()
 {
-	SDL_PumpEvents();
 	int y;
+
 	SDL_GetMouseState(NULL, &y);
 	return y;
 }
@@ -199,6 +199,7 @@ get_mouse_v()
 	int       x;
 	int       y;
 
+	SDL_PumpEvents();
 	x = mouseX();
 	y = mouseY();
 	return normalize(make_vector(x - 320, y - 240));
@@ -253,8 +254,8 @@ update_player(int x, int y)
 	player.y = y;
 	for (int i = 0; i < NFORCES; i++)
 		if (forces[i].t) {
-			player.x += forces[i].v.x * forces[i].t / 250;
-			player.y += forces[i].v.y * forces[i].t / 250;
+			player.x += forces[i].v.x * (float) forces[i].t / 250;
+			player.y += forces[i].v.y * (float) forces[i].t / 250;
 			printf("x:%lf\ny:%lf\n", player.x, player.y);
 		}
 	if (collide_walls(player)) {
@@ -369,11 +370,11 @@ main_loop()
 			float  w;
 			entity sp;
 
-			sp = make_entity(player.x - 2, player.x - 2, player.w + 4, player.h + 4, NULL_VECTOR);
+			sp = make_entity(player.x - 1, player.y - 1, player.w + 2, player.h + 2, NULL_VECTOR);
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
 			h = make_entity(player.x - sw_off, player.y - sw_off, w, w, NULL_VECTOR);
 			if ((collide_walls(h) && (!collide_walls(sp))))
-				add_force(make_vector(5 * SPEED_COEF * player.s.x, 5 * SPEED_COEF * player.s.y), 50);
+				add_force(make_vector(10 * SPEED_COEF * player.s.x, 10 * SPEED_COEF * player.s.y), 50);
 			has_sword --;
 			draw_sword();
 		} handle_input();
