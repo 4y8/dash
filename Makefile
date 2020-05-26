@@ -1,2 +1,3 @@
+CFLAGS := $(CFLAGS) -O3
 all:
-	gcc dash.c -o dash -lSDL2 -lm
+	cc dash.c -o dash -lSDL2 -lm $(CFLAGS)

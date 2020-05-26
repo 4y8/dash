@@ -34,6 +34,7 @@ double PI = 3.14159265;
 #define SWORD_LENGTH  16
 #define SWORD_WIDTH   10
 #define SWORD_HEIGHT  30
+#define SWORD_COOLDWN
 #define PLAYER_HEALTH 100
 #define COLLISION_HP  10
 
