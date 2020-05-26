@@ -8,7 +8,7 @@ typedef struct Vector2 {
 } Vector2;
 
 typedef struct Entity {
-	float    x, y, w, h;
+	float   x, y, w, h, l;
 	Vector2 s;
 } Entity;
 
@@ -26,6 +26,7 @@ double PI = 3.14159265;
 
 #define SCREEN_WIDTH  640
 #define SCREEN_HEIGHT 480
+/*  Plyaer's control variables */
 #define SPEED_COEF    4
 #define PLAYER_WIDTH  10
 #define PLAYER_HEIGHT 10
@@ -33,13 +34,17 @@ double PI = 3.14159265;
 #define SWORD_LENGTH  16
 #define SWORD_WIDTH   10
 #define SWORD_HEIGHT  30
+#define PLAYER_HEALTH 100
+#define COLLISION_HP  10
 
-int WHITE = 0xFFFFFF, BLACK = 0x000000;
+#define WHITE 0xFFFFFF
+#define BLACK 0x000000
 
 int start_x;
 int start_y;
 int sw_off;
 int has_sword;
+int collided;
 
 SDL_Window   *screen;
 SDL_Renderer *renderer;
@@ -71,7 +76,7 @@ make_vector2(int x, int y)
 Vector2 NULL_VECTOR;
 
 Entity
-make_entity(int x, int y, int w, int h, Vector2 s)
+make_entity(float x, float y, float w, float h, Vector2 s, float l)
 {
 	Entity e;
 
@@ -80,6 +85,7 @@ make_entity(int x, int y, int w, int h, Vector2 s)
 	e.w = w;
 	e.h = h;
 	e.s = s;
+	e.l = l;
 	return e;
 }
 
@@ -134,6 +140,9 @@ normalize(Vector2 v)
 
 }
 
+/*  All the draw_* functions don't apply the modifications, this has to be done,
+ * by the caller. This reduces a lot flickering if managed well
+ */
 void
 draw_rectangle(int x, int y, int w, int h, int color)
 {
@@ -216,7 +225,7 @@ build_walls(int w[6][8])
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < 8; j++)
 			if (w[i][j])
-				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80, NULL_VECTOR);
+				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80, NULL_VECTOR, -1);
 	l.len = ++p;
 	return l;
 }
@@ -256,12 +265,13 @@ update_player(int x, int y)
 		if (forces[i].t) {
 			player.x += forces[i].v.x * (float) forces[i].t / 250;
 			player.y += forces[i].v.y * (float) forces[i].t / 250;
-			printf("x:%lf\ny:%lf\n", player.x, player.y);
 		}
 	if (collide_walls(player)) {
-		player.x   = sx;
-		player.y   = sy;
-	}
+		player.x = sx;
+		player.y = sy;
+		if(!collided) player.l -= COLLISION_HP;
+		collided = 1;
+	} else collided = 0;
 	for (int i = 0; i < walls_e.len; i++)
 		draw_entity(walls_e.l[i], x - start_x, y - start_y);
 	draw_rectangle(start_x,
@@ -278,13 +288,15 @@ init()
 	NULL_VECTOR = make_vector2(0, 0);
 	start_x     = 320 - PLAYER_WIDTH / 2;
 	start_y     = 240 - PLAYER_HEIGHT / 2;
+	walls_e     = build_walls(walls);
+	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
+	collided    = 0;
 	player      = make_entity(start_x,
 							  start_y,
 							  PLAYER_WIDTH,
 							  PLAYER_HEIGHT,
-							  NULL_VECTOR);
-	walls_e     = build_walls(walls);
-	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
+							  NULL_VECTOR,
+							  PLAYER_HEALTH);
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
@@ -341,17 +353,13 @@ handle_input()
 
 	if (SDL_PollEvent(&e))
 		switch (e.type){
-			case SDL_QUIT:
-				SDL_Quit();
-				exit(0);
-				break;
+			case SDL_QUIT: SDL_Quit(); exit(0);
 			case SDL_MOUSEBUTTONDOWN: {
 				if (e.button.button == SDL_BUTTON_LEFT)
 					has_sword = SWORD_LENGTH;
 				break;
 			}
-			default:
-				break;
+			default: break;
 		}
 
 }
@@ -367,11 +375,22 @@ main_loop()
 			float  w;
 			Entity sp;
 
-			sp = make_entity(player.x - 2, player.y - 2, player.w + 4, player.h + 4, NULL_VECTOR);
+			sp = make_entity(player.x - 2,
+							 player.y - 2,
+							 player.w + 4,
+							 player.h + 4,
+							 NULL_VECTOR,
+							 -1);
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
-			h = make_entity(player.x - sw_off, player.y - sw_off, w, w, NULL_VECTOR);
+			h = make_entity(player.x - sw_off,
+							player.y - sw_off,
+							w,
+							w,
+							NULL_VECTOR,
+							-1);
 			if ((collide_walls(h) && (!collide_walls(sp))))
-				add_force(make_vector2(15 * SPEED_COEF * player.s.x, 15 * SPEED_COEF * player.s.y), 50);
+				add_force(make_vector2(15 * SPEED_COEF * player.s.x,
+									   15 * SPEED_COEF * player.s.y), 50);
 			has_sword --;
 			draw_sword();
 		} handle_input();
@@ -382,6 +401,7 @@ main_loop()
 		/* Only apply the renderings after at the end to avoid flickering. */
 		SDL_RenderPresent(renderer);
 		for (int i = 0; i < NFORCES; i++) if (forces[i].t) forces[i].t --;
+		if (!player.l) {SDL_Quit(); exit(0);}
 		SDL_Delay(10);
 	}
 }
