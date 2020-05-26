@@ -26,6 +26,7 @@ double PI = 3.14159265;
 
 #define SCREEN_WIDTH  640
 #define SCREEN_HEIGHT 480
+
 /*  Plyaer's control variables */
 #define SPEED_COEF    4
 #define PLAYER_WIDTH  10
@@ -34,7 +35,7 @@ double PI = 3.14159265;
 #define SWORD_LENGTH  16
 #define SWORD_WIDTH   10
 #define SWORD_HEIGHT  30
-#define SWORD_COOLDWN
+#define SWORD_COOLDWN 20
 #define PLAYER_HEALTH 100
 #define COLLISION_HP  10
 
@@ -141,8 +142,10 @@ normalize(Vector2 v)
 
 }
 
-/*  All the draw_* functions don't apply the modifications, this has to be done,
- * by the caller. This reduces a lot flickering if managed well
+/*
+ * All the draw_* functions don't apply the modifications, this has to be done,
+ * by the caller. This reduces a lot flickering if managed well, for instance if
+ * the SDL_RenderPresent is called only once per frame.
  */
 void
 draw_rectangle(int x, int y, int w, int h, int color)
@@ -356,8 +359,8 @@ handle_input()
 		switch (e.type){
 			case SDL_QUIT: SDL_Quit(); exit(0);
 			case SDL_MOUSEBUTTONDOWN: {
-				if (e.button.button == SDL_BUTTON_LEFT)
-					has_sword = SWORD_LENGTH;
+				if ((e.button.button == SDL_BUTTON_LEFT) && (!has_sword))
+					has_sword = SWORD_LENGTH + SWORD_COOLDWN;
 				break;
 			}
 			default: break;
@@ -371,7 +374,7 @@ main_loop()
 	for (;;) {
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
-		if (has_sword) {
+		if (has_sword - SWORD_COOLDWN > 0) {
 			Entity h;
 			float  w;
 			Entity sp;
@@ -392,9 +395,9 @@ main_loop()
 			if ((collide_walls(h) && (!collide_walls(sp))))
 				add_force(make_vector2(15 * SPEED_COEF * player.s.x,
 									   15 * SPEED_COEF * player.s.y), 50);
-			has_sword --;
 			draw_sword();
 		} handle_input();
+		if (has_sword) has_sword --;
 		player.s = get_mouse_v();
 		update_player(player.x - SPEED_COEF * player.s.x,
 					  player.y - SPEED_COEF * player.s.y);
@@ -402,7 +405,7 @@ main_loop()
 		/* Only apply the renderings after at the end to avoid flickering. */
 		SDL_RenderPresent(renderer);
 		for (int i = 0; i < NFORCES; i++) if (forces[i].t) forces[i].t --;
-		if (!player.l) {SDL_Quit(); exit(0);}
+		if (!player.l) { SDL_Quit(); exit(0); }
 		SDL_Delay(10);
 	}
 }
