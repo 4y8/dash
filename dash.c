@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <SDL2/SDL.h>
 #include <math.h>
+#include <time.h>
 
 typedef struct Vector2 {
 	float x, y;
@@ -19,8 +20,13 @@ typedef struct Entity_l {
 
 typedef struct Force {
 	Vector2 v;
-	int    t;
+	int     t;
 } Force;
+
+typedef struct Ennemy {
+	enum { SKELETON, SLIME } t;
+	Entity b;
+} Ennemy;
 
 double PI = 3.14159265;
 
@@ -50,6 +56,7 @@ int start_y;
 int sw_off;
 int has_sword;
 int collided;
+int frame_num;
 
 SDL_Window   *screen;
 SDL_Renderer *renderer;
@@ -60,7 +67,7 @@ Entity_l walls_e;
 
 Entity player;
 
-int walls[6][8] = {
+int room[6][8] = {
 {1, 1, 1, 1, 1, 1, 1, 1},
 {1, 0, 0, 0, 0, 0, 0, 1},
 {1, 0, 0, 0, 0, 0, 0, 1},
@@ -228,8 +235,7 @@ build_walls(int w[6][8])
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < 8; j++)
 			if (w[i][j])
-				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80, 
-						       NULL_VECTOR, -1);
+				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80,  NULL_VECTOR, -1);
 	l.len = ++p;
 	return l;
 }
@@ -250,6 +256,30 @@ collide_walls (Entity e)
 	for (int i = 0; i < walls_e.len; i++)
 		if (detect_collision(walls_e.l[i], e)) return TRUE;
 	return FALSE;
+}
+
+Ennemy
+move_ennemy(Ennemy e)
+{
+	switch (e.t) {
+		case SKELETON: {
+			Vector v;
+
+			v      = norm(player.x - e.b.x, player.y - e.b.y);
+			e.b.x += v.x;
+			e.b.y += v.y;
+			break;
+		} case SLIME: {
+			Vector v;
+
+			do {
+				v      = norm(rand(), rand());
+				e.b.x += v.x;
+				e.b.y += v.y;
+			} while(collide_walls(e.b));
+		}
+	}
+	return e;
 }
 
 void
@@ -288,11 +318,12 @@ init()
 	NULL_VECTOR = make_vector2(0, 0);
 	start_x     = (SCREEN_WIDTH - PLAYER_WIDTH) / 2;
 	start_y     = (SCREEN_HEIGHT - PLAYER_HEIGHT) / 2;
-	walls_e     = build_walls(walls);
+	walls_e     = build_walls(room);
 	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	collided    = FALSE;
+	frame_num   = 0;
 	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
-	                          NULL_VECTOR, PLAYER_HEALTH);
+							  NULL_VECTOR, PLAYER_HEALTH);
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
@@ -305,6 +336,7 @@ init()
 		printf("Error: Unable to create the SDL renderer: %s\n", 
 	               SDL_GetError());
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+	srand(time(NULL));
 }
 
 void
@@ -316,17 +348,17 @@ draw_sword()
 	a = atan2(player.s.y, player.s.x);
 	a *= 180 / PI;
 	if ((a > 135) || (a < -135)) draw_rectangle(start_x - PLAYER_WIDTH,
-	                                            start_y - sw_off,
-	                                            SWORD_WIDTH,
-	                                            SWORD_HEIGHT, WHITE);
+												start_y - sw_off,
+												SWORD_WIDTH,
+												SWORD_HEIGHT, WHITE);
 	else if (a > 45)  draw_rectangle(start_x - sw_off,
-	                                 start_y + PLAYER_WIDTH,
-	                                 SWORD_HEIGHT, SWORD_WIDTH, WHITE);
+									 start_y + PLAYER_WIDTH,
+									 SWORD_HEIGHT, SWORD_WIDTH, WHITE);
 	else if (a < -45) draw_rectangle(start_x - sw_off,
-	                                 start_y - PLAYER_WIDTH,
-	                                 SWORD_HEIGHT, SWORD_WIDTH, WHITE);
+									 start_y - PLAYER_WIDTH,
+									 SWORD_HEIGHT, SWORD_WIDTH, WHITE);
 	else              draw_rectangle(start_x + PLAYER_WIDTH,
-	                                 start_y - sw_off,
+									 start_y - sw_off,
 					 SWORD_WIDTH, SWORD_HEIGHT, WHITE);
 }
 
@@ -374,18 +406,20 @@ main_loop()
 					w, w, NULL_VECTOR, -1);
 			if ((collide_walls(h) && (!collide_walls(sp))))
 				add_force(make_vector2(15 * SPEED_COEF * player.s.x,
-						       15 * SPEED_COEF * player.s.y), 50);
+									   15 * SPEED_COEF * player.s.y), 50);
 			draw_sword();
 		} handle_input();
 		if (has_sword) has_sword --;
 		player.s = get_mouse_v();
 		update_player(player.x - SPEED_COEF * player.s.x,
-		              player.y - SPEED_COEF * player.s.y);
+					  player.y - SPEED_COEF * player.s.y);
 
 		/* Only apply the renderings after at the end to avoid flickering. */
 		SDL_RenderPresent(renderer);
 		for (int i = 0; i < NFORCES; i++) if (forces[i].t) forces[i].t --;
 		if (!player.l) { SDL_Quit(); exit(0); }
+		frame_num = (++frame_num) % 60;
+		printf("%d\n", frame_num);
 		SDL_Delay(10);
 	}
 }
