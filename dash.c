@@ -24,6 +24,9 @@ typedef struct Force {
 
 double PI = 3.14159265;
 
+#define TRUE  1
+#define FALSE 0
+
 #define SCREEN_WIDTH  640
 #define SCREEN_HEIGHT 480
 
@@ -248,8 +251,8 @@ int
 collide_walls (Entity e)
 {
 	for (int i = 0; i < walls_e.len; i++)
-		if (detect_collision(walls_e.l[i], e)) return 1;
-	return 0;
+		if (detect_collision(walls_e.l[i], e)) return TRUE;
+	return FALSE;
 }
 
 void
@@ -262,7 +265,7 @@ update_player(int x, int y)
 
 	sx  = player.x;
 	sy  = player.y;
-	col = 0;
+	col = FALSE;
 	player.x = x;
 	player.y = y;
 	for (int i = 0; i < NFORCES; i++)
@@ -290,11 +293,11 @@ init()
 {
 	/* Setup the initial position and size of the player. */
 	NULL_VECTOR = make_vector2(0, 0);
-	start_x     = 320 - PLAYER_WIDTH / 2;
-	start_y     = 240 - PLAYER_HEIGHT / 2;
+	start_x     = (SCREEN_WIDTH  - PLAYER_WIDTH) / 2;
+	start_y     = (SCREEN_HEIGHT - PLAYER_HEIGHT) / 2;
 	walls_e     = build_walls(walls);
 	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
-	collided    = 0;
+	collided    = FALSE;
 	player      = make_entity(start_x,
 							  start_y,
 							  PLAYER_WIDTH,
