@@ -155,11 +155,8 @@ draw_rectangle(int x, int y, int w, int h, int color)
 {
 	SDL_Rect r;
 
-	SDL_SetRenderDrawColor(renderer,
-						   color & 0xFF0000 >> 16,
-						   color & 0x00FF00 >> 8,
-						   color & 0x0000FF,
-						   255);
+	SDL_SetRenderDrawColor(renderer, color & 0xFF0000 >> 16,
+	                       color & 0x00FF00 >> 8, color & 0x0000FF, 255);
 	r = make_rect(x, y, w, h);
 	SDL_RenderFillRect(renderer, &r);
 }
@@ -173,10 +170,9 @@ draw_rectangle_a(int x, int y, int h, int w, int color, double angle)
 	SDL_Rect    dr;
 
 	s = SDL_CreateRGBSurface(0, w, h, 24, 0, 0, 0, 0);
-	SDL_FillRect(s, NULL, SDL_MapRGB(s->format,
-									 color & 0xFF0000 >> 16,
-									 color & 0x00FF00 >> 8,
-									 color & 0x0000FF));
+	SDL_FillRect(s, NULL, SDL_MapRGB(s->format, color & 0xFF0000 >> 16,
+	                                 color & 0x00FF00 >> 8, 
+					 color & 0x0000FF));
 	t = SDL_CreateTextureFromSurface(renderer, s);
 	SDL_FreeSurface(s);
 	sr = make_rect(0, 0, w, h);
@@ -232,7 +228,8 @@ build_walls(int w[6][8])
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < 8; j++)
 			if (w[i][j])
-				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80, NULL_VECTOR, -1);
+				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80, 
+						       NULL_VECTOR, -1);
 	l.len = ++p;
 	return l;
 }
@@ -276,16 +273,12 @@ update_player(int x, int y)
 	if (collide_walls(player)) {
 		player.x = sx;
 		player.y = sy;
-		if(!collided) player.l -= COLLISION_HP;
+		if (!collided) player.l -= COLLISION_HP;
 		collided = 1;
 	} else collided = 0;
 	for (int i = 0; i < walls_e.len; i++)
 		draw_entity(walls_e.l[i], x - start_x, y - start_y);
-	draw_rectangle(start_x,
-				   start_y,
-				   PLAYER_WIDTH,
-				   PLAYER_HEIGHT,
-				   WHITE);
+	draw_rectangle(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, WHITE);
 }
 
 void
@@ -293,26 +286,24 @@ init()
 {
 	/* Setup the initial position and size of the player. */
 	NULL_VECTOR = make_vector2(0, 0);
-	start_x     = (SCREEN_WIDTH  - PLAYER_WIDTH) / 2;
+	start_x     = (SCREEN_WIDTH - PLAYER_WIDTH) / 2;
 	start_y     = (SCREEN_HEIGHT - PLAYER_HEIGHT) / 2;
 	walls_e     = build_walls(walls);
 	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	collided    = FALSE;
-	player      = make_entity(start_x,
-							  start_y,
-							  PLAYER_WIDTH,
-							  PLAYER_HEIGHT,
-							  NULL_VECTOR,
-							  PLAYER_HEALTH);
+	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
+	                          NULL_VECTOR, PLAYER_HEALTH);
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
 	screen = SDL_CreateWindow("dash", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 	if (!screen)
-		printf("Error: Unable to create the SDL window: %s\n", SDL_GetError());
+		printf("Error: Unable to create the SDL window: %s\n", 
+		       SDL_GetError());
 	renderer = SDL_CreateRenderer(screen, -1, 0);
 	if (!renderer)
-		printf("Error: Unable to create the SDL renderer: %s\n", SDL_GetError());
+		printf("Error: Unable to create the SDL renderer: %s\n", 
+	               SDL_GetError());
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
@@ -325,25 +316,18 @@ draw_sword()
 	a = atan2(player.s.y, player.s.x);
 	a *= 180 / PI;
 	if ((a > 135) || (a < -135)) draw_rectangle(start_x - PLAYER_WIDTH,
-												start_y - sw_off,
-												SWORD_WIDTH,
-												SWORD_HEIGHT,
-												WHITE);
+	                                            start_y - sw_off,
+	                                            SWORD_WIDTH,
+	                                            SWORD_HEIGHT, WHITE);
 	else if (a > 45)  draw_rectangle(start_x - sw_off,
-									 start_y + PLAYER_WIDTH,
-									 SWORD_HEIGHT,
-									 SWORD_WIDTH,
-									 WHITE);
+	                                 start_y + PLAYER_WIDTH,
+	                                 SWORD_HEIGHT, SWORD_WIDTH, WHITE);
 	else if (a < -45) draw_rectangle(start_x - sw_off,
-									 start_y - PLAYER_WIDTH,
-									 SWORD_HEIGHT,
-									 SWORD_WIDTH,
-									 WHITE);
+	                                 start_y - PLAYER_WIDTH,
+	                                 SWORD_HEIGHT, SWORD_WIDTH, WHITE);
 	else              draw_rectangle(start_x + PLAYER_WIDTH,
-									 start_y - sw_off,
-									 SWORD_WIDTH,
-									 SWORD_HEIGHT,
-									 WHITE);
+	                                 start_y - sw_off,
+					 SWORD_WIDTH, SWORD_HEIGHT, WHITE);
 }
 
 void
@@ -382,28 +366,21 @@ main_loop()
 			float  w;
 			Entity sp;
 
-			sp = make_entity(player.x - 2,
-							 player.y - 2,
-							 player.w + 4,
-							 player.h + 4,
-							 NULL_VECTOR,
-							 -1);
+			sp = make_entity(player.x - 2, player.y - 2,
+					 player.w + 4, player.h + 4,
+					 NULL_VECTOR, -1);
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
-			h = make_entity(player.x - sw_off,
-							player.y - sw_off,
-							w,
-							w,
-							NULL_VECTOR,
-							-1);
+			h = make_entity(player.x - sw_off, player.y - sw_off, 
+					w, w, NULL_VECTOR, -1);
 			if ((collide_walls(h) && (!collide_walls(sp))))
 				add_force(make_vector2(15 * SPEED_COEF * player.s.x,
-									   15 * SPEED_COEF * player.s.y), 50);
+						       15 * SPEED_COEF * player.s.y), 50);
 			draw_sword();
 		} handle_input();
 		if (has_sword) has_sword --;
 		player.s = get_mouse_v();
 		update_player(player.x - SPEED_COEF * player.s.x,
-					  player.y - SPEED_COEF * player.s.y);
+		              player.y - SPEED_COEF * player.s.y);
 
 		/* Only apply the renderings after at the end to avoid flickering. */
 		SDL_RenderPresent(renderer);
