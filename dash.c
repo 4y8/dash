@@ -4,26 +4,26 @@
 #include <math.h>
 #include <time.h>
 
-typedef struct Vector2 {
+typedef struct {
 	float x, y;
 } Vector2;
 
-typedef struct Entity {
+typedef struct {
 	float   x, y, w, h, l;
 	Vector2 s;
 } Entity;
 
-typedef struct Entity_l {
+typedef struct {
 	Entity  l[48];
 	int     len;
 } Entity_l;
 
-typedef struct Force {
+typedef struct {
 	Vector2 v;
 	int     t;
 } Force;
 
-typedef struct Ennemy {
+typedef struct {
 	enum { SKELETON, SLIME } t;
 	Entity b;
 } Ennemy;
@@ -37,7 +37,7 @@ double PI = 3.14159265;
 #define SCREEN_HEIGHT 480
 
 /*  Plyaer's control variables */
-#define SPEED_COEF    4
+#define SPEED_COEF    3.5
 #define PLAYER_WIDTH  10
 #define PLAYER_HEIGHT 10
 #define NFORCES       1
@@ -67,11 +67,13 @@ Entity_l walls_e;
 
 Entity player;
 
+Ennemy skeleton;
+
 int room[6][8] = {
 {1, 1, 1, 1, 1, 1, 1, 1},
 {1, 0, 0, 0, 0, 0, 0, 1},
-{1, 0, 0, 0, 0, 0, 0, 0},
-{1, 0, 0, 0, 0, 0, 0, 0},
+{1, 0, 0, 0, 0, 0, 0, 1},
+{1, 0, 0, 0, 0, 0, 0, 1},
 {1, 0, 0, 0, 0, 0, 0, 1},
 {1, 1, 1, 1, 1, 1, 1, 1}};
 
@@ -109,6 +111,16 @@ make_force(Vector2 v, int t)
 	f.v = v;
 	f.t = t;
 	return f;
+}
+
+Ennemy
+make_ennemy(int t, Entity b)
+{
+	Ennemy e;
+
+	e.t = t;
+	e.b = b;
+	return e;
 }
 
 SDL_Rect
@@ -179,7 +191,7 @@ draw_rectangle_a(int x, int y, int h, int w, int color, double angle)
 	s = SDL_CreateRGBSurface(0, w, h, 24, 0, 0, 0, 0);
 	SDL_FillRect(s, NULL, SDL_MapRGB(s->format, color & 0xFF0000 >> 16,
 									 color & 0x00FF00 >> 8,
-					 color & 0x0000FF));
+									 color & 0x0000FF));
 	t = SDL_CreateTextureFromSurface(renderer, s);
 	SDL_FreeSurface(s);
 	sr = make_rect(0, 0, w, h);
@@ -331,6 +343,7 @@ init()
 	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	collided    = FALSE;
 	frame_num   = 0;
+	skeleton    = make_ennemy(SKELETON, make_entity(0, 0, 10, 10, NULL_VECTOR, 50));
 	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
 							  NULL_VECTOR, PLAYER_HEALTH);
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
@@ -368,7 +381,7 @@ draw_sword()
 									 SWORD_HEIGHT, SWORD_WIDTH, WHITE);
 	else              draw_rectangle(start_x + PLAYER_WIDTH,
 									 start_y - sw_off,
-					 SWORD_WIDTH, SWORD_HEIGHT, WHITE);
+									 SWORD_WIDTH, SWORD_HEIGHT, WHITE);
 }
 
 void
