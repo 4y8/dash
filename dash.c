@@ -70,8 +70,8 @@ Entity player;
 int room[6][8] = {
 {1, 1, 1, 1, 1, 1, 1, 1},
 {1, 0, 0, 0, 0, 0, 0, 1},
-{1, 0, 0, 0, 0, 0, 0, 1},
-{1, 0, 0, 0, 0, 0, 0, 1},
+{1, 0, 0, 0, 0, 0, 0, 0},
+{1, 0, 0, 0, 0, 0, 0, 0},
 {1, 0, 0, 0, 0, 0, 0, 1},
 {1, 1, 1, 1, 1, 1, 1, 1}};
 
@@ -163,7 +163,7 @@ draw_rectangle(int x, int y, int w, int h, int color)
 	SDL_Rect r;
 
 	SDL_SetRenderDrawColor(renderer, color & 0xFF0000 >> 16,
-	                       color & 0x00FF00 >> 8, color & 0x0000FF, 255);
+						   color & 0x00FF00 >> 8, color & 0x0000FF, 255);
 	r = make_rect(x, y, w, h);
 	SDL_RenderFillRect(renderer, &r);
 }
@@ -178,7 +178,7 @@ draw_rectangle_a(int x, int y, int h, int w, int color, double angle)
 
 	s = SDL_CreateRGBSurface(0, w, h, 24, 0, 0, 0, 0);
 	SDL_FillRect(s, NULL, SDL_MapRGB(s->format, color & 0xFF0000 >> 16,
-	                                 color & 0x00FF00 >> 8, 
+									 color & 0x00FF00 >> 8,
 					 color & 0x0000FF));
 	t = SDL_CreateTextureFromSurface(renderer, s);
 	SDL_FreeSurface(s);
@@ -235,7 +235,9 @@ build_walls(int w[6][8])
 	for (int i = 0; i < 6; i++)
 		for (int j = 0; j < 8; j++)
 			if (w[i][j])
-				l.l[++p] = make_entity(80 * j, 80 * i, 80, 80,  NULL_VECTOR, -1);
+				l.l[++p] = make_entity(SCREEN_WIDTH  - 80 * (j + 1),
+									   SCREEN_HEIGHT - 80 * (i + 1), 80, 80,
+									   NULL_VECTOR, -1);
 	l.len = ++p;
 	return l;
 }
@@ -263,17 +265,17 @@ move_ennemy(Ennemy e)
 {
 	switch (e.t) {
 		case SKELETON: {
-			Vector v;
+			Vector2 v;
 
-			v      = norm(player.x - e.b.x, player.y - e.b.y);
+			v      = normalize(make_vector2(player.x - e.b.x, player.y - e.b.y));
 			e.b.x += v.x;
 			e.b.y += v.y;
 			break;
 		} case SLIME: {
-			Vector v;
+			Vector2 v;
 
 			do {
-				v      = norm(rand(), rand());
+				v      = normalize(make_vector2(rand(), rand()));
 				e.b.x += v.x;
 				e.b.y += v.y;
 			} while(collide_walls(e.b));
@@ -306,8 +308,15 @@ update_player(int x, int y)
 		if (!collided) player.l -= COLLISION_HP;
 		collided = 1;
 	} else collided = 0;
-	for (int i = 0; i < walls_e.len; i++)
+	for (int i = 0; i < walls_e.len; i++) {
+		sx = walls_e.l[i].x;
+		sy = walls_e.l[i].y;
+		walls_e.l[i].x = SCREEN_WIDTH  - walls_e.l[i].x - 80;
+		walls_e.l[i].y = SCREEN_HEIGHT - walls_e.l[i].y - 80;
 		draw_entity(walls_e.l[i], x - start_x, y - start_y);
+		walls_e.l[i].x = sx;
+		walls_e.l[i].y = sy;
+	}
 	draw_rectangle(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, WHITE);
 }
 
@@ -413,13 +422,11 @@ main_loop()
 		player.s = get_mouse_v();
 		update_player(player.x - SPEED_COEF * player.s.x,
 					  player.y - SPEED_COEF * player.s.y);
-
 		/* Only apply the renderings after at the end to avoid flickering. */
 		SDL_RenderPresent(renderer);
 		for (int i = 0; i < NFORCES; i++) if (forces[i].t) forces[i].t --;
 		if (!player.l) { SDL_Quit(); exit(0); }
-		frame_num = (++frame_num) % 60;
-		printf("%d\n", frame_num);
+		frame_num = (frame_num + 1) % 60;
 		SDL_Delay(10);
 	}
 }
