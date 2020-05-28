@@ -37,16 +37,17 @@ double PI = 3.14159265;
 #define SCREEN_HEIGHT 480
 
 /*  Plyaer's control variables */
-#define SPEED_COEF    3.5
-#define PLAYER_WIDTH  10
-#define PLAYER_HEIGHT 10
-#define NFORCES       1
-#define SWORD_LENGTH  16
-#define SWORD_WIDTH   10
-#define SWORD_HEIGHT  30
-#define SWORD_COOLDWN 20
-#define PLAYER_HEALTH 100
-#define COLLISION_HP  10
+#define SPEED_COEF     3
+#define PLAYER_WIDTH   10
+#define PLAYER_HEIGHT  10
+#define NFORCES        1
+#define SWORD_LENGTH   16
+#define SWORD_WIDTH    10
+#define SWORD_HEIGHT   30
+#define SWORD_COOLDWN  20
+#define PLAYER_HEALTH  100
+#define COLLISION_HP   10
+#define COLLISION_COEF 12
 
 #define WHITE 0xFFFFFF
 #define BLACK 0x000000
@@ -114,7 +115,7 @@ make_force(Vector2 v, int t)
 }
 
 Ennemy
-make_ennemy(int t, Entity b)
+make_ennemy(int t, Entity b, float d)
 {
 	Ennemy e;
 
@@ -202,6 +203,9 @@ draw_rectangle_a(int x, int y, int h, int w, int color, double angle)
 void
 draw_entity(Entity e, int off_x, int off_y)
 {
+
+	e.x = SCREEN_WIDTH - e.x - e.w;
+	e.y = SCREEN_HEIGHT - e.y - e.h;
 	draw_rectangle(e.x + off_x, e.y + off_y, e.w, e.h, WHITE);
 }
 
@@ -320,15 +324,10 @@ update_player(int x, int y)
 		if (!collided) player.l -= COLLISION_HP;
 		collided = 1;
 	} else collided = 0;
-	for (int i = 0; i < walls_e.len; i++) {
-		sx = walls_e.l[i].x;
-		sy = walls_e.l[i].y;
-		walls_e.l[i].x = SCREEN_WIDTH  - walls_e.l[i].x - 80;
-		walls_e.l[i].y = SCREEN_HEIGHT - walls_e.l[i].y - 80;
+	for (int i = 0; i < walls_e.len; i++)
 		draw_entity(walls_e.l[i], x - start_x, y - start_y);
-		walls_e.l[i].x = sx;
-		walls_e.l[i].y = sy;
-	}
+	skeleton = move_ennemy(skeleton);
+	draw_entity(skeleton.b, x - start_x, y - start_y);
 	draw_rectangle(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, WHITE);
 }
 
@@ -343,7 +342,8 @@ init()
 	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	collided    = FALSE;
 	frame_num   = 0;
-	skeleton    = make_ennemy(SKELETON, make_entity(0, 0, 10, 10, NULL_VECTOR, 50));
+	skeleton    = make_ennemy(SKELETON,
+							  make_entity(0, 0, 10, 20, NULL_VECTOR, 50), 5);
 	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
 							  NULL_VECTOR, PLAYER_HEALTH);
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
@@ -426,9 +426,9 @@ main_loop()
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
 			h = make_entity(player.x - sw_off, player.y - sw_off, 
 					w, w, NULL_VECTOR, -1);
-			if ((collide_walls(h) && (!collide_walls(sp))))
-				add_force(make_vector2(15 * SPEED_COEF * player.s.x,
-									   15 * SPEED_COEF * player.s.y), 50);
+			if ((((collide_walls(h)) || ((detect_collision(h, skeleton.b)))) && (!collide_walls(sp))))
+				add_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
+									   COLLISION_COEF * SPEED_COEF * player.s.y), 50);
 			draw_sword();
 		} handle_input();
 		if (has_sword) has_sword --;
