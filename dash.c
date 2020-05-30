@@ -53,7 +53,7 @@ double PI = 3.14159265;
 #define COLLISION_COEF 17
 #define COLLISION_DIV  250
 #define PLAYER_DAMAGE  10
-#define PLAYER_STREN   5
+#define PLAYER_STREN   20
 
 #define WHITE 0xFFFFFF
 #define BLACK 0x000000
@@ -357,7 +357,7 @@ init()
 	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	collided    = FALSE;
 	skeleton    = make_ennemy(SKELETON,
-							  make_entity(0, 0, 10, 20, 50, NULL_VECTOR), 5, 17, 5);
+							  make_entity(0, 0, 10, 20, 30, NULL_VECTOR), 5, 17, 3);
 	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
 							  PLAYER_HEALTH, NULL_VECTOR);
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
@@ -366,11 +366,11 @@ init()
 	screen = SDL_CreateWindow("dash", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 	if (!screen)
 		printf("Error: Unable to create the SDL window: %s\n", 
-		       SDL_GetError());
+			   SDL_GetError());
 	renderer = SDL_CreateRenderer(screen, -1, 0);
 	if (!renderer)
 		printf("Error: Unable to create the SDL renderer: %s\n", 
-	               SDL_GetError());
+			   SDL_GetError());
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 	srand(time(NULL));
 }
@@ -443,16 +443,17 @@ main_loop()
 				add_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
 									   COLLISION_COEF * SPEED_COEF * player.s.y),
 						  50);
-			if ((detect_collision(h, skeleton.b)) &&
-				(!detect_collision(sp, skeleton.b))) {
+			if ((detect_collision(h,       skeleton.b)) &&
+				(!detect_collision(player, skeleton.b))) {
 				skeleton.b.l -= PLAYER_DAMAGE;
+				puts("ee");
+				skeleton.f = make_force(
+					make_vector2(-player.s.x * (PLAYER_STREN - skeleton.r) * SPEED_COEF,
+								 -player.s.y * (PLAYER_STREN - skeleton.r) * SPEED_COEF), 50);
 				if (skeleton.b.l <= 0)
 					skeleton = make_ennemy(SKELETON,
-										   make_entity(0, 0, 10, 20, 50,
-													   NULL_VECTOR), 5, 17, 5);
-				skeleton.f = make_force(
-					make_vector2(-player.s.x * (PLAYER_STREN - skeleton.r),
-								 -player.s.y * (PLAYER_STREN - skeleton.r)), 50);
+										   make_entity(0, 0, 10, 20, 30,
+													   NULL_VECTOR), 5, 17, 3);
 
 			}
 			draw_sword();
