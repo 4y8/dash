@@ -53,6 +53,7 @@ double PI = 3.14159265;
 #define COLLISION_COEF 17
 #define COLLISION_DIV  250
 #define PLAYER_DAMAGE  10
+#define PLAYER_STREN   5
 
 #define WHITE 0xFFFFFF
 #define BLACK 0x000000
@@ -288,6 +289,13 @@ collide_walls (Entity e)
 Ennemy
 move_ennemy(Ennemy e)
 {
+
+	if (e.f.t) {
+		e.b.x += e.f.v.x * (float) e.f.t / COLLISION_DIV;
+		e.b.y += e.f.v.y * (float) e.f.t / COLLISION_DIV;
+		-- e.f.t;
+	}
+
 	switch (e.t) {
 		case SKELETON: {
 			Vector2 v;
@@ -431,10 +439,22 @@ main_loop()
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
 			h = make_entity(player.x - sw_off, player.y - sw_off, 
 					w, w, -1, NULL_VECTOR);
-			if ((((collide_walls(h)) || ((detect_collision(h, skeleton.b))))
-				 && (!collide_walls(sp))))
+			if (((collide_walls(h)) && (!collide_walls(sp))))
 				add_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
-									   COLLISION_COEF * SPEED_COEF * player.s.y), 50);
+									   COLLISION_COEF * SPEED_COEF * player.s.y),
+						  50);
+			if ((detect_collision(h, skeleton.b)) &&
+				(!detect_collision(sp, skeleton.b))) {
+				skeleton.b.l -= PLAYER_DAMAGE;
+				if (skeleton.b.l <= 0)
+					skeleton = make_ennemy(SKELETON,
+										   make_entity(0, 0, 10, 20, 50,
+													   NULL_VECTOR), 5, 17, 5);
+				skeleton.f = make_force(
+					make_vector2(-player.s.x * (PLAYER_STREN - skeleton.r),
+								 -player.s.y * (PLAYER_STREN - skeleton.r)), 50);
+
+			}
 			draw_sword();
 		} handle_input();
 		if (has_sword) has_sword --;
