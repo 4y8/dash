@@ -26,9 +26,9 @@ typedef struct {
 typedef struct {
 	enum { SKELETON, SLIME } t;
 	Entity b;
-	float  d;
+	float  d, k, r;
 	int    c; /*  Has it already collided with the player */
-	int    k; /*  The knockback. */
+	Force  f;
 } Ennemy;
 
 double PI = 3.14159265;
@@ -119,13 +119,16 @@ make_force(Vector2 v, int t)
 }
 
 Ennemy
-make_ennemy(int t, Entity b, float d)
+make_ennemy(int t, Entity b, float d, float k, float r)
 {
 	Ennemy e;
 
 	e.t = t;
 	e.b = b;
 	e.d = d;
+	e.k = k;
+	e.r = r;
+	e.f = make_force(NULL_VECTOR, 0);
 	e.c = FALSE;
 	return e;
 }
@@ -346,7 +349,7 @@ init()
 	sw_off      = (SWORD_HEIGHT - PLAYER_HEIGHT) / 2;
 	collided    = FALSE;
 	skeleton    = make_ennemy(SKELETON,
-							  make_entity(0, 0, 10, 20, 50, NULL_VECTOR), 5);
+							  make_entity(0, 0, 10, 20, 50, NULL_VECTOR), 5, 17, 5);
 	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
 							  PLAYER_HEALTH, NULL_VECTOR);
 	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
@@ -439,6 +442,8 @@ main_loop()
 			if ((!skeleton.c)) {
 				player.l -= skeleton.d;
 				skeleton.c = TRUE;
+				add_force(make_vector2(skeleton.k * SPEED_COEF * player.s.x,
+									   skeleton.k * SPEED_COEF * player.s.y), 50);
 			}
 		} else skeleton.c = FALSE;
 		player.s = get_mouse_v();
