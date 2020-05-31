@@ -211,7 +211,7 @@ draw_rectangle_a(int x, int y, int h, int w, int color, double angle)
 }
 
 void
-draw_entity(Entity e, int off_x, int off_y)
+draw_entity(Entity e, float off_x, float off_y)
 {
 
 	e.x = SCREEN_WIDTH - e.x - e.w;
@@ -375,11 +375,32 @@ init()
 	srand(time(NULL));
 }
 
+Entity
+sword_entity()
+{
+	double a;
+
+	a = atan2(player.s.y, player.s.x);
+	a *= 180 / PI;
+	if ((a > 135) || (a < -135))
+		return make_entity(player.x + PLAYER_WIDTH, player.y - sw_off,
+						   SWORD_WIDTH, SWORD_HEIGHT, -1, NULL_VECTOR);
+	else if (a > 45)
+		return make_entity(player.x - sw_off, player.y - PLAYER_WIDTH,
+						   SWORD_HEIGHT, SWORD_WIDTH, -1, NULL_VECTOR);
+	else if (a < -45)
+		return make_entity(player.x - sw_off, player.y + PLAYER_WIDTH,
+						   SWORD_HEIGHT, SWORD_WIDTH, -1, NULL_VECTOR);
+	else
+		return make_entity(player.x - PLAYER_WIDTH, player.y - sw_off,
+						   SWORD_WIDTH, SWORD_HEIGHT, -1, NULL_VECTOR);
+
+}
+
 void
 draw_sword()
 {
 	double a;
-	Entity hitbox;
 
 	a = atan2(player.s.y, player.s.x);
 	a *= 180 / PI;
@@ -437,8 +458,7 @@ main_loop()
 			sp = make_entity(player.x - 2, player.y - 2,
 					 player.w + 4, player.h + 4, -1, NULL_VECTOR);
 			w = 2 * SWORD_WIDTH + PLAYER_HEIGHT;
-			h = make_entity(player.x - sw_off, player.y - sw_off, 
-					w, w, -1, NULL_VECTOR);
+			h = sword_entity();
 			if (((collide_walls(h)) && (!collide_walls(sp))))
 				add_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
 									   COLLISION_COEF * SPEED_COEF * player.s.y),
@@ -446,10 +466,10 @@ main_loop()
 			if ((detect_collision(h,       skeleton.b)) &&
 				(!detect_collision(player, skeleton.b))) {
 				skeleton.b.l -= PLAYER_DAMAGE;
-				puts("ee");
 				skeleton.f = make_force(
-					make_vector2(-player.s.x * (PLAYER_STREN - skeleton.r) * SPEED_COEF,
-								 -player.s.y * (PLAYER_STREN - skeleton.r) * SPEED_COEF), 50);
+					make_vector2(-player.s.x * (PLAYER_STREN - skeleton.r) *
+								 SPEED_COEF, -player.s.y *
+								 (PLAYER_STREN - skeleton.r) * SPEED_COEF), 50);
 				if (skeleton.b.l <= 0)
 					skeleton = make_ennemy(SKELETON,
 										   make_entity(0, 0, 10, 20, 30,
