@@ -40,7 +40,7 @@ double PI = 3.14159265;
 #define SCREEN_HEIGHT 480
 
 /*  Plyaer's control variables */
-#define SPEED_COEF     1.7
+#define SPEED_COEF     2
 #define PLAYER_WIDTH   10
 #define PLAYER_HEIGHT  10
 #define NFORCES        1
@@ -49,8 +49,8 @@ double PI = 3.14159265;
 #define SWORD_HEIGHT   30
 #define SWORD_COOLDWN  20
 #define PLAYER_HEALTH  100
-#define COLLISION_HP   10
-#define COLLISION_COEF 17
+#define WALL_DAMAGE    10
+#define COLLISION_COEF 20
 #define COLLISION_DIV  250
 #define PLAYER_DAMAGE  10
 #define PLAYER_STREN   20
@@ -291,9 +291,20 @@ move_ennemy(Ennemy e)
 {
 
 	if (e.f.t) {
+		int x;
+		int y;
+
+		x = e.b.x;
+		y = e.b.y;
 		e.b.x += e.f.v.x * (float) e.f.t / COLLISION_DIV;
 		e.b.y += e.f.v.y * (float) e.f.t / COLLISION_DIV;
 		-- e.f.t;
+		if (collide_walls(e.b)) {
+			e.f.t = 0;
+			e.b.x = x;
+			e.b.y = y;
+			e.b.l -= WALL_DAMAGE;
+		}
 	}
 
 	switch (e.t) {
@@ -336,7 +347,7 @@ update_player(float x, float y)
 	if (collide_walls(player)) {
 		player.x = sx;
 		player.y = sy;
-		if (!collided) player.l -= COLLISION_HP;
+		if (!collided) player.l -= WALL_DAMAGE;
 		collided = TRUE;
 	} else collided = FALSE;
 	for (int i = 0; i < walls_e.len; i++)
