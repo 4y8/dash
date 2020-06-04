@@ -27,7 +27,7 @@ typedef struct {
 	enum { SKELETON, SLIME } t;
 	Entity b;
 	float  d, k, r;
-	int    c; /*  Has it already collided with the player */
+	int    c, w; /*  Has it already collided with the player or the wall.*/
 	Force  f;
 } Ennemy;
 
@@ -57,6 +57,7 @@ double PI = 3.14159265;
 #define COLLISION_LEN  50
 #define HEALTH_BAR_W   200
 #define HEALTH_BAR_H   50
+#define SLIME_VELOCITY 1.5
 
 #define WHITE 0xFFFFFF
 #define BLACK 0x000000
@@ -134,6 +135,7 @@ make_ennemy(int t, Entity b, float d, float k, float r)
 	e.r = r;
 	e.f = make_force(NULL_VECTOR, 0);
 	e.c = FALSE;
+	e.w = FALSE;
 	return e;
 }
 
@@ -281,12 +283,12 @@ Ennemy
 move_ennemy(Ennemy e)
 {
 
-	if (e.f.t) {
-		int x;
-		int y;
+	int x;
+	int y;
 
-		x = e.b.x;
-		y = e.b.y;
+	x = e.b.x;
+	y = e.b.y;
+	if (e.f.t) {
 		e.b.x += e.f.v.x * e.f.t / COLLISION_DIV;
 		e.b.y += e.f.v.y * e.f.t / COLLISION_DIV;
 		-- e.f.t;
@@ -294,8 +296,11 @@ move_ennemy(Ennemy e)
 			e.f.t = 0;
 			e.b.x = x;
 			e.b.y = y;
-			e.b.l -= WALL_DAMAGE;
-		}
+			if (!e.w) {
+				e.b.l -= WALL_DAMAGE;
+				e.w    = TRUE;
+			}
+		} else e.w = FALSE;
 	}
 
 	switch (e.t) {
@@ -307,26 +312,27 @@ move_ennemy(Ennemy e)
 			e.b.y += v.y;
 			break;
 		} case SLIME: {
-			  float sx = 0, sy = 0;
-			  do {
-				  Vector2 v;
-				  int r;
-				  float xm, ym;
+			  Vector2 v;
+			  float xm, ym;
 
-				  switch(rand() % 4) {
-					  case 0: xm = 1;  ym = 1;  break;
-					  case 1: xm = -1; ym = 1;  break;
-					  case 2: xm = 1;  ym = -1; break;
-					  case 3: xm = -1; ym = -1; break;
-				  }
-
-				  e.b.x -= sx;
-				  e.b.y -= sy;
-				  v      = normalize(make_vector2(xm * (float) rand(), ym * (float) rand()));
-				  printf("%f\n%f\n", v.x, v.y);
-				  e.b.x += v.x;
-				  e.b.y += v.y;
-			  } while (collide_walls(e.b));
+			  switch(rand() % 4) {
+				  case 0: xm = 1;  ym = 1;  break;
+				  case 1: xm = -1; ym = 1;  break;
+				  case 2: xm = 1;  ym = -1; break;
+				  case 3: xm = -1; ym = -1; break;
+			  }
+			  if (e.f.t <= 0) {
+				  e.f = make_force(NULL_VECTOR, 500);
+				  e.b.s = normalize(make_vector2(xm * rand(),
+												 ym * rand()));
+			  }
+			  e.b.x += SLIME_VELOCITY * e.b.s.x;
+			  e.b.y += SLIME_VELOCITY * e.b.s.y;
+			  if (collide_walls(e.b)) {
+				  e.f.t = 0;
+				  e.b.x = x;
+				  e.b.y = y;
+			  }
 		  }
 	}
 	return e;
