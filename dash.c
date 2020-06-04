@@ -55,6 +55,8 @@ double PI = 3.14159265;
 #define COLLISION_COEF 20
 #define COLLISION_DIV  250
 #define COLLISION_LEN  50
+#define HEALTH_BAR_W   200
+#define HEALTH_BAR_H   50
 
 #define WHITE 0xFFFFFF
 #define BLACK 0x000000
@@ -305,14 +307,27 @@ move_ennemy(Ennemy e)
 			e.b.y += v.y;
 			break;
 		} case SLIME: {
-			do {
-				Vector2 v;
-			
-				v      = normalize(make_vector2(rand(), rand()));
-				e.b.x += v.x;
-				e.b.y += v.y;
-			} while(collide_walls(e.b));
-		}
+			  float sx = 0, sy = 0;
+			  do {
+				  Vector2 v;
+				  int r;
+				  float xm, ym;
+
+				  switch(rand() % 4) {
+					  case 0: xm = 1;  ym = 1;  break;
+					  case 1: xm = -1; ym = 1;  break;
+					  case 2: xm = 1;  ym = -1; break;
+					  case 3: xm = -1; ym = -1; break;
+				  }
+
+				  e.b.x -= sx;
+				  e.b.y -= sy;
+				  v      = normalize(make_vector2(xm * (float) rand(), ym * (float) rand()));
+				  printf("%f\n%f\n", v.x, v.y);
+				  e.b.x += v.x;
+				  e.b.y += v.y;
+			  } while (collide_walls(e.b));
+		  }
 	}
 	return e;
 }
@@ -430,7 +445,23 @@ handle_input()
 				break;
 			default: break;
 		}
+}
 
+void
+health_bar()
+{
+	draw_rectangle(0, 0, HEALTH_BAR_W, HEALTH_BAR_H, BLACK);
+	draw_rectangle(5, 5, HEALTH_BAR_W - 10, HEALTH_BAR_H - 10, WHITE);
+	draw_rectangle(10, 10, HEALTH_BAR_W - 20, HEALTH_BAR_H - 20, BLACK);
+	draw_rectangle(15, 15, (HEALTH_BAR_W -30) * player.l / PLAYER_HEALTH,
+				   HEALTH_BAR_H - 30, WHITE);
+
+}
+
+void
+hud()
+{
+	health_bar();
 }
 
 void
@@ -482,8 +513,9 @@ main_loop()
 		update_player(player.x - SPEED_COEF * player.s.x,
 					  player.y - SPEED_COEF * player.s.y);
 		/* Only apply the renderings after at the end to avoid flickering. */
+		hud();
 		SDL_RenderPresent(renderer);
-		if (!player.l) { SDL_Quit(); exit(0); }
+		if (player.l <= 0) { SDL_Quit(); exit(0); }
 		SDL_Delay(5);
 	}
 }
