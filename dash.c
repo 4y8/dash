@@ -487,8 +487,7 @@ main_loop()
 				add_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
 									   COLLISION_COEF * SPEED_COEF * player.s.y),
 						  COLLISION_LEN);
-			if ((detect_collision(h,       skeleton.b)) &&
-				(!detect_collision(player, skeleton.b))) {
+			if (detect_collision(h, skeleton.b)) {
 				skeleton.b.l -= PLAYER_DAMAGE;
 				if (skeleton.b.l <= 0)
 					skeleton = make_ennemy(SKELETON,
@@ -504,17 +503,18 @@ main_loop()
 						COLLISION_LEN);
 			}
 			draw_sword();
+		} else {
+			if ((detect_collision(player, skeleton.b))){
+				if ((!skeleton.c)) {
+					player.l -= skeleton.d;
+					skeleton.c = TRUE;
+					add_force(make_vector2(skeleton.k * SPEED_COEF * player.s.x,
+										   skeleton.k * SPEED_COEF * player.s.y),
+							  COLLISION_LEN);
+				}
+			} else skeleton.c = FALSE;
 		} handle_input();
 		if (has_sword) has_sword --;
-		if ((detect_collision(player, skeleton.b))){
-			if ((!skeleton.c)) {
-				player.l -= skeleton.d;
-				skeleton.c = TRUE;
-				add_force(make_vector2(skeleton.k * SPEED_COEF * player.s.x,
-									   skeleton.k * SPEED_COEF * player.s.y),
-						  COLLISION_LEN);
-			}
-		} else skeleton.c = FALSE;
 		player.s = get_mouse_v();
 		update_player(player.x - SPEED_COEF * player.s.x,
 					  player.y - SPEED_COEF * player.s.y);
