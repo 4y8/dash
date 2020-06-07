@@ -55,8 +55,8 @@ double PI = 3.14159265;
 #define COLLISION_COEF 20
 #define COLLISION_DIV  250
 #define COLLISION_LEN  50
-#define HEALTH_BAR_W   200
-#define HEALTH_BAR_H   50
+#define HEALTH_BAR_W   160
+#define HEALTH_BAR_H   48
 #define SLIME_VELOCITY 1.5
 
 #define WHITE 0xFFFFFF
@@ -456,11 +456,26 @@ handle_input()
 void
 health_bar()
 {
-	draw_rectangle(0, 0, HEALTH_BAR_W, HEALTH_BAR_H, BLACK);
-	draw_rectangle(5, 5, HEALTH_BAR_W - 10, HEALTH_BAR_H - 10, WHITE);
-	draw_rectangle(10, 10, HEALTH_BAR_W - 20, HEALTH_BAR_H - 20, BLACK);
-	draw_rectangle(15, 15, (HEALTH_BAR_W -30) * player.l / PLAYER_HEALTH,
-				   HEALTH_BAR_H - 30, WHITE);
+	draw_rectangle(80, 8, HEALTH_BAR_W, HEALTH_BAR_H, BLACK);
+	draw_rectangle(84, 12, HEALTH_BAR_W - 8, HEALTH_BAR_H - 8, WHITE);
+	draw_rectangle(88, 16, HEALTH_BAR_W - 16, HEALTH_BAR_H - 16, BLACK);
+	draw_rectangle(92, 20, (HEALTH_BAR_W - 24) * player.l / PLAYER_HEALTH,
+				   HEALTH_BAR_H - 24, WHITE);
+
+}
+
+void
+player_icon()
+{
+	SDL_Rect     r;
+	SDL_Surface *i;
+	SDL_Texture *t;
+
+	r = make_rect(8, 8, 0, 0);
+	i = SDL_LoadBMP("assets/icons/player_icon1_64px.bmp");
+	t = SDL_CreateTextureFromSurface(renderer, i);
+	SDL_QueryTexture(t, NULL, NULL, &r.w, &r.h);
+	SDL_RenderCopy(renderer, t, NULL, &r);
 
 }
 
@@ -468,6 +483,7 @@ void
 hud()
 {
 	health_bar();
+	player_icon();
 }
 
 void
