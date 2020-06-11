@@ -9,8 +9,15 @@ typedef struct {
 } Vector2;
 
 typedef struct {
+	Vector2 v;
+	float   t;
+} Force;
+
+typedef struct {
 	float   x, y, w, h, l;
+	int     c;
 	Vector2 s;
+	Force   f;
 } Entity;
 
 typedef struct {
@@ -19,16 +26,10 @@ typedef struct {
 } Entity_l;
 
 typedef struct {
-	Vector2 v;
-	float   t;
-} Force;
-
-typedef struct {
 	enum { SKELETON, SLIME } t;
 	Entity b;
 	float  d, k, r;
-	int    c, w; /*  Has it already collided with the player or the wall.*/
-	Force  f;
+	int    c;
 } Ennemy;
 
 double PI = 3.14159265;
@@ -66,12 +67,9 @@ int start_x;
 int start_y;
 int sw_off;
 int has_sword;
-int collided;
 
 SDL_Window   *screen;
 SDL_Renderer *renderer;
-
-Force forces[NFORCES];
 
 Entity_l walls_e;
 
@@ -99,6 +97,16 @@ make_vector2(int x, int y)
 
 Vector2 NULL_VECTOR;
 
+Force
+make_force(Vector2 v, int t)
+{
+	Force f;
+
+	f.v = v;
+	f.t = t;
+	return f;
+}
+
 Entity
 make_entity(float x, float y, float w, float h, float l, Vector2 s)
 {
@@ -110,17 +118,9 @@ make_entity(float x, float y, float w, float h, float l, Vector2 s)
 	e.h = h;
 	e.s = s;
 	e.l = l;
+	e.c = FALSE;
+	e.f = make_force(NULL_VECTOR, 0);
 	return e;
-}
-
-Force
-make_force(Vector2 v, int t)
-{
-	Force f;
-
-	f.v = v;
-	f.t = t;
-	return f;
 }
 
 Ennemy
@@ -133,9 +133,7 @@ make_ennemy(int t, Entity b, float d, float k, float r)
 	e.d = d;
 	e.k = k;
 	e.r = r;
-	e.f = make_force(NULL_VECTOR, 0);
 	e.c = FALSE;
-	e.w = FALSE;
 	return e;
 }
 
@@ -279,37 +277,44 @@ collide_walls (Entity e)
 	return FALSE;
 }
 
+Entity
+process_collision(Entity e, float d)
+{
+	int x;
+	int y;
+
+	x    = e.x;
+	y    = e.y;
+	e.x += e.s.x;
+	e.y += e.s.y;
+	if (e.f.t) {
+		e.x -= e.f.v.x * e.f.t / COLLISION_DIV;
+		e.y -= e.f.v.y * e.f.t / COLLISION_DIV;
+		-- e.f.t;
+	}
+	if (collide_walls(e)) {
+		e.x = x;
+		e.y = y;
+		if (!e.c) e.l -= d;
+		e.c = TRUE;
+	} else e.c = FALSE;
+	return e;
+}
+
 Ennemy
 move_ennemy(Ennemy e)
 {
-
 	int x;
 	int y;
 
 	x = e.b.x;
 	y = e.b.y;
-	if (e.f.t) {
-		e.b.x += e.f.v.x * e.f.t / COLLISION_DIV;
-		e.b.y += e.f.v.y * e.f.t / COLLISION_DIV;
-		-- e.f.t;
-		if (collide_walls(e.b)) {
-			e.f.t = 0;
-			e.b.x = x;
-			e.b.y = y;
-			if (!e.w) {
-				e.b.l -= WALL_DAMAGE;
-				e.w    = TRUE;
-			}
-		} else e.w = FALSE;
-	}
 
 	switch (e.t) {
 		case SKELETON: {
 			Vector2 v;
 
-			v      = normalize(make_vector2(player.x - e.b.x, player.y - e.b.y));
-			e.b.x += v.x;
-			e.b.y += v.y;
+			e.b.s = normalize(make_vector2(player.x - e.b.x, player.y - e.b.y));
 			break;
 		} case SLIME: {
 			  Vector2 v;
@@ -321,50 +326,34 @@ move_ennemy(Ennemy e)
 				  case 2: xm = 1;  ym = -1; break;
 				  case 3: xm = -1; ym = -1; break;
 			  }
-			  if (e.f.t <= 0) {
-				  e.f = make_force(NULL_VECTOR, 500);
+			  if (e.b.f.t <= 0) {
+				  e.b.f = make_force(NULL_VECTOR, 500);
 				  e.b.s = normalize(make_vector2(xm * rand(),
 												 ym * rand()));
 			  }
 			  e.b.x += SLIME_VELOCITY * e.b.s.x;
 			  e.b.y += SLIME_VELOCITY * e.b.s.y;
 			  if (collide_walls(e.b)) {
-				  e.f.t = 0;
-				  e.b.x = x;
-				  e.b.y = y;
+				  e.b.f.t = 0;
+				  e.b.x   = x;
+				  e.b.y   = y;
 			  }
 		  }
 	}
+	e.b = process_collision(e.b, WALL_DAMAGE);
 	return e;
 }
 
 void
-update_player(float x, float y)
+update_player()
 {
 	Entity_l l;
-	float    sx;
-	float    sy;
 
-	sx  = player.x;
-	sy  = player.y;
-	player.x = x;
-	player.y = y;
-	for (int i = 0; i < NFORCES; i++)
-		if (forces[i].t) {
-			player.x += forces[i].v.x * forces[i].t / COLLISION_DIV;
-			player.y += forces[i].v.y * forces[i].t / COLLISION_DIV;
-			forces[i].t --;
-		}
-	if (collide_walls(player)) {
-		player.x = sx;
-		player.y = sy;
-		if (!collided) player.l -= WALL_DAMAGE;
-		collided = TRUE;
-	} else collided = FALSE;
+	player = process_collision(player, WALL_DAMAGE);
 	for (int i = 0; i < walls_e.len; i++)
-		draw_entity(walls_e.l[i], x - start_x, y - start_y);
+		draw_entity(walls_e.l[i], player.x - start_x, player.y - start_y);
 	skeleton = move_ennemy(skeleton);
-	draw_entity(skeleton.b, x - start_x, y - start_y);
+	draw_entity(skeleton.b, player.x - start_x, player.y - start_y);
 	draw_rectangle(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, WHITE);
 }
 
@@ -377,15 +366,13 @@ init()
 	start_y     = (SCREEN_HEIGHT - PLAYER_HEIGHT) / 2;
 	sw_off      = (SWORD_HEIGHT  - PLAYER_HEIGHT) / 2;
 	walls_e     = build_walls(room);
-	collided    = FALSE;
 	skeleton    = make_ennemy(SKELETON,
 							  make_entity(rand() % SCREEN_WIDTH,
 										  rand() % SCREEN_HEIGHT,
 										  10, 20, 30, NULL_VECTOR),
-							  5, 17, 3);
+							  5, 14, 3);
 	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
 							  PLAYER_HEALTH, NULL_VECTOR);
-	for (int i = 0; i < NFORCES; i++) forces[i] = make_force(NULL_VECTOR, 0);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
 	screen = SDL_CreateWindow("dash", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
@@ -405,7 +392,7 @@ sword_entity()
 {
 	double a;
 
-	a = atan2(player.s.y, player.s.x);
+	a = atan2(-player.s.y, -player.s.x);
 	a *= 180 / PI;
 	if ((a > 135) || (a < -135))
 		return make_entity(player.x + PLAYER_WIDTH, player.y - sw_off,
@@ -428,13 +415,6 @@ draw_sword()
 	double a;
 
 	draw_entity(sword_entity(), - start_x + player.x, - start_y + player.y);
-}
-
-void
-add_force(Vector2 v, int t)
-{
-	forces[0] = make_force(v, t);
-	return;
 }
 
 void
@@ -500,7 +480,7 @@ main_loop()
 							 player.h + 4, -1, NULL_VECTOR);
 			h = sword_entity();
 			if (((collide_walls(h)) && (!collide_walls(sp))))
-				add_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
+				player.f = make_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
 									   COLLISION_COEF * SPEED_COEF * player.s.y),
 						  COLLISION_LEN);
 			if (detect_collision(h, skeleton.b)) {
@@ -510,9 +490,9 @@ main_loop()
 										   make_entity(rand() % SCREEN_WIDTH,
 													   rand() % SCREEN_HEIGHT,
 													   10, 20, 30, NULL_VECTOR),
-										   5, 17, 3);
+										   5, 14, 3);
 				else
-					skeleton.f = make_force(
+					skeleton.b.f = make_force(
 						make_vector2(player.s.x * (skeleton.r - PLAYER_STREN) *
 									 SPEED_COEF, player.s.y *
 									 (skeleton.r - PLAYER_STREN) * SPEED_COEF),
@@ -522,18 +502,21 @@ main_loop()
 		} else {
 			if ((detect_collision(player, skeleton.b))){
 				if ((!skeleton.c)) {
-					player.l -= skeleton.d;
+					player.c   = TRUE;
+					player.l  -= skeleton.d;
 					skeleton.c = TRUE;
-					add_force(make_vector2(skeleton.k * SPEED_COEF * player.s.x,
-										   skeleton.k * SPEED_COEF * player.s.y),
-							  COLLISION_LEN);
+					player.f   = make_force(make_vector2(skeleton.k * SPEED_COEF
+														 * player.s.x, skeleton.k *
+														 SPEED_COEF * player.s.y),
+							                COLLISION_LEN);
 				}
 			} else skeleton.c = FALSE;
 		} handle_input();
 		if (has_sword) has_sword --;
-		player.s = get_mouse_v();
-		update_player(player.x - SPEED_COEF * player.s.x,
-					  player.y - SPEED_COEF * player.s.y);
+		player.s    = get_mouse_v();
+		player.s.x *= -SPEED_COEF;
+		player.s.y *= -SPEED_COEF;
+		update_player();
 		/* Only apply the renderings after at the end to avoid flickering. */
 		hud();
 		SDL_RenderPresent(renderer);
