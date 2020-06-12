@@ -179,6 +179,15 @@ normalize(Vector2 v)
 }
 
 /*
+** Return a random integer between min and max.
+ */
+int
+rand_int(int min, int max)
+{
+	return min + rand() % (max - min + 1);
+}
+
+/*
  * All the draw_* functions don't apply the modifications, this has to be done,
  * by the caller. This reduces a lot flickering if managed well, for instance if
  * the SDL_RenderPresent is called only once per frame.
@@ -345,6 +354,15 @@ move_ennemy(Ennemy e)
 }
 
 void
+spawn_skeleton()
+{
+	skeleton = make_ennemy(SKELETON,
+						   make_entity(rand_int(80, SCREEN_WIDTH - 80),
+									   rand_int(80, SCREEN_HEIGHT - 80),
+									   10, 20, 30, NULL_VECTOR), 5, 14, 3);
+}
+
+void
 update_player()
 {
 	Entity_l l;
@@ -366,12 +384,8 @@ init()
 	start_y     = (SCREEN_HEIGHT - PLAYER_HEIGHT) / 2;
 	sw_off      = (SWORD_HEIGHT  - PLAYER_HEIGHT) / 2;
 	walls_e     = build_walls(room);
-	skeleton    = make_ennemy(SKELETON,
-							  make_entity(rand() % SCREEN_WIDTH,
-										  rand() % SCREEN_HEIGHT,
-										  10, 20, 30, NULL_VECTOR),
-							  5, 14, 3);
-	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT, 
+	spawn_skeleton();
+	player      = make_entity(start_x, start_y, PLAYER_WIDTH, PLAYER_HEIGHT,
 							  PLAYER_HEALTH, NULL_VECTOR);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 		printf("Error: SDL initialization error: %s\n", SDL_GetError());
@@ -485,12 +499,7 @@ main_loop()
 						  COLLISION_LEN);
 			if (detect_collision(h, skeleton.b)) {
 				skeleton.b.l -= PLAYER_DAMAGE;
-				if (skeleton.b.l <= 0)
-					skeleton = make_ennemy(SKELETON,
-										   make_entity(rand() % SCREEN_WIDTH,
-													   rand() % SCREEN_HEIGHT,
-													   10, 20, 30, NULL_VECTOR),
-										   5, 14, 3);
+				if (skeleton.b.l <= 0) spawn_skeleton();
 				else
 					skeleton.b.f = make_force(
 						make_vector2(player.s.x * (skeleton.r - PLAYER_STREN) *
@@ -503,8 +512,8 @@ main_loop()
 			if ((detect_collision(player, skeleton.b))){
 				if ((!skeleton.c)) {
 					player.c   = TRUE;
-					player.l  -= skeleton.d;
 					skeleton.c = TRUE;
+					player.l  -= skeleton.d;
 					player.f   = make_force(make_vector2(skeleton.k * SPEED_COEF
 														 * player.s.x, skeleton.k *
 														 SPEED_COEF * player.s.y),
