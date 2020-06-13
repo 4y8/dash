@@ -44,7 +44,7 @@ double PI = 3.14159265;
 #define SPEED_COEF     2
 #define PLAYER_WIDTH   10
 #define PLAYER_HEIGHT  10
-#define PLAYER_STREN   20
+#define PLAYER_STREN   14.9
 #define PLAYER_DAMAGE  10
 #define NFORCES        1
 #define SWORD_LENGTH   16
@@ -179,12 +179,12 @@ normalize(Vector2 v)
 }
 
 /*
-** Return a random integer between min and max.
+ * Return a random integer between min and max.
  */
 int
 rand_int(int min, int max)
 {
-	return min + rand() % (max - min + 1);
+	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
 
 /*
@@ -487,17 +487,19 @@ main_loop()
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
 		if (has_sword - SWORD_COOLDWN > 0) {
-			Entity h;
+			Entity s;
 			Entity sp;
 
 			sp = make_entity(player.x - 2, player.y - 2, player.w + 4,
 							 player.h + 4, -1, NULL_VECTOR);
-			h = sword_entity();
-			if (((collide_walls(h)) && (!collide_walls(sp))))
-				player.f = make_force(make_vector2(COLLISION_COEF * SPEED_COEF * player.s.x,
-									   COLLISION_COEF * SPEED_COEF * player.s.y),
-						  COLLISION_LEN);
-			if (detect_collision(h, skeleton.b)) {
+			s  = sword_entity();
+			if (((collide_walls(s)) && (!collide_walls(sp))))
+				player.f = make_force(make_vector2(COLLISION_COEF * SPEED_COEF *
+												   player.s.x,
+												   COLLISION_COEF * SPEED_COEF *
+												   player.s.y),
+									  COLLISION_LEN);
+			if (detect_collision(s, skeleton.b)) {
 				skeleton.b.l -= PLAYER_DAMAGE;
 				if (skeleton.b.l <= 0) spawn_skeleton();
 				else
