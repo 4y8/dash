@@ -313,19 +313,12 @@ process_collision(Entity e, float d)
 Ennemy
 move_ennemy(Ennemy e)
 {
-	int x;
-	int y;
-
-	x = e.b.x;
-	y = e.b.y;
-
 	switch (e.t) {
-		case SKELETON: {
-			Vector2 v;
-
+		case SKELETON:
 			e.b.s = normalize(make_vector2(player.x - e.b.x, player.y - e.b.y));
 			break;
-		} case SLIME: {
+		case SLIME: /*{
+			  FIXME
 			  Vector2 v;
 			  float xm, ym;
 
@@ -337,8 +330,7 @@ move_ennemy(Ennemy e)
 			  }
 			  if (e.b.f.t <= 0) {
 				  e.b.f = make_force(NULL_VECTOR, 500);
-				  e.b.s = normalize(make_vector2(xm * rand(),
-												 ym * rand()));
+				  e.b.s = normalize(make_vector2(xm * rand(), ym * rand()));
 			  }
 			  e.b.x += SLIME_VELOCITY * e.b.s.x;
 			  e.b.y += SLIME_VELOCITY * e.b.s.y;
@@ -347,7 +339,8 @@ move_ennemy(Ennemy e)
 				  e.b.x   = x;
 				  e.b.y   = y;
 			  }
-		  }
+
+		  }*/break;
 	}
 	e.b = process_collision(e.b, WALL_DAMAGE);
 	return e;
@@ -357,8 +350,8 @@ void
 spawn_skeleton()
 {
 	skeleton = make_ennemy(SKELETON,
-						   make_entity(rand_int(80, SCREEN_WIDTH - 80),
-									   rand_int(80, SCREEN_HEIGHT - 80),
+						   make_entity(rand_int(80, SCREEN_WIDTH - 90),
+									   rand_int(80, SCREEN_HEIGHT - 100),
 									   10, 20, 30, NULL_VECTOR), 5, 14, 3);
 }
 
@@ -420,15 +413,23 @@ sword_entity()
 	else
 		return make_entity(player.x - PLAYER_WIDTH, player.y - sw_off,
 						   SWORD_WIDTH, SWORD_HEIGHT, -1, NULL_VECTOR);
-
 }
 
 void
 draw_sword()
 {
-	double a;
-
 	draw_entity(sword_entity(), - start_x + player.x, - start_y + player.y);
+}
+
+void pause()
+{
+	while(1) {
+		SDL_Event e;
+
+		SDL_WaitEvent(&e);
+		if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT)
+			return;
+	}
 }
 
 void
@@ -442,6 +443,8 @@ handle_input()
 			case SDL_MOUSEBUTTONDOWN:
 				if ((e.button.button == SDL_BUTTON_LEFT) && (!has_sword))
 					has_sword = SWORD_LENGTH + SWORD_COOLDWN;
+				else if (e.button.button == SDL_BUTTON_RIGHT)
+					pause();
 				break;
 			default: break;
 		}
@@ -488,12 +491,12 @@ main_loop()
 		SDL_RenderClear(renderer);
 		if (has_sword - SWORD_COOLDWN > 0) {
 			Entity s;
-			Entity sp;
+			Entity h;
 
-			sp = make_entity(player.x - 2, player.y - 2, player.w + 4,
+			h = make_entity(player.x - 2, player.y - 2, player.w + 4,
 							 player.h + 4, -1, NULL_VECTOR);
-			s  = sword_entity();
-			if (((collide_walls(s)) && (!collide_walls(sp))))
+			s = sword_entity();
+			if (((collide_walls(s)) && (!collide_walls(h))))
 				player.f = make_force(make_vector2(COLLISION_COEF * SPEED_COEF *
 												   player.s.x,
 												   COLLISION_COEF * SPEED_COEF *
